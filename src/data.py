@@ -1,9 +1,13 @@
 # %%
 import os
-os.system('kaggle datasets download -d bar-hill-surveys')
+os.system('kaggle datasets download --unzip mshahoyi/bar-hill-surveys -p /kaggle/working')
+#%%
+os.system('mv /kaggle/working/"Bar Hill Surveys 2024" /kaggle/working/barhill')
 
 # %%
-os.system('ls /kaggle/input/bar-hill-surveys')
+os.system('pip install -q ramda')
+#%%
+os.system('ls /kaggle/working/barhill')
 
 # %%
 import ramda as R
@@ -11,15 +15,15 @@ import os
 import shutil
 from pathlib import Path
 
-data_root = Path("/kaggle/input/bar-hill-surveys")/'Bar Hill Surveys 2024'
+data_root = Path('/kaggle/working/barhill')
 walk = list(os.walk(data_root))
 walk[:4]
 
-# %%
+# %% Only get the GCN folders
 gcns = R.filter(lambda x: 'gcn' in os.path.basename(x[0]).lower(), walk) #
 gcns[:2]
 
-# %%
+# %% Get the image files
 image_extensions = (".jpg", ".jpeg", ".png")
 
 data = [(os.path.basename(root), R.compose(
@@ -30,12 +34,12 @@ data = [(os.path.basename(root), R.compose(
 dict(data[:2])    
 
 # %%
-base_dir = Path("barhill")
+base_dir = Path("/kaggle/working/barhill_output")
 output_dir = base_dir/"GCNs"
-!rm -rf {base_dir}
+os.system(f'rm -rf {base_dir}')
 Path(base_dir).mkdir(exist_ok=True)
 Path(output_dir).mkdir(exist_ok=True)
-!ls
+os.system(f'ls {base_dir}')
 
 # %%
 # All GCN folders to create
@@ -93,6 +97,7 @@ for newt_id in os.listdir(output_dir):
 gallery_and_probe_data[:5]
 
 # %%
+import pandas as pd
 df = pd.DataFrame(gallery_and_probe_data)
 df.head()
 
@@ -103,9 +108,4 @@ df.is_probe.mean()
 df.to_csv(base_dir/"gallery_and_probes.csv")
 
 # %%
-ls {base_dir}
-
-# %%
-
-
-
+os.system(f'ls {base_dir}')
