@@ -645,3 +645,8 @@ visualize_occlusion_sensitivity( # Reusing the visualization function
     blur_map_diff_newt,
     f"Blur Perturbation: Newt {random_newts[0]} (Img 1) vs Newt {random_newts[1]} (Img 1)"
 )
+
+
+# %%
+#| hide
+import nbdev; nbdev.nbdev_export()
