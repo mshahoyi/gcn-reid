@@ -3,7 +3,7 @@
 # > This notebook is used to segment the newts in the Barhill dataset using the Grounded-SAM-2 model.
 
 # %%
-#| default_exp seg
+#|default_exp seg
 
 # %% [code] 
 import os
@@ -39,9 +39,7 @@ from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
 import pandas as pd
 
 # %% [code]
-GROUNDING_MODEL = "IDEA-Research/grounding-dino-tiny"
-TEXT_PROMPT = "car. tire."
-IMG_PATH = "notebooks/images/truck.jpg"
+GROUNDING_MODEL = "IDEA-Research/grounding-dino-base"
 SAM2_CHECKPOINT = "./checkpoints/sam2.1_hiera_large.pt"
 SAM2_MODEL_CONFIG = "configs/sam2.1/sam2.1_hiera_l.yaml"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -217,8 +215,6 @@ mask_annotator = sv.MaskAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MA
 # However, the supervision docs often show chaining like this. Let's assume chaining:
 annotated_frame_final = mask_annotator.annotate(scene=annotated_frame_labels.copy(), detections=detections) # Use copy to avoid modifying annotated_frame_labels
 
-# --- Save final image ---
-cv2.imwrite(os.path.join(OUTPUT_DIR, "grounded_sam2_annotated_image_with_mask.jpg"), annotated_frame_final)
 
 # --- Visualize final image (boxes + labels + masks) INLINE ---
 print("\nDisplaying final image with boxes, labels, and masks:")
@@ -245,7 +241,7 @@ metadata_df = pd.read_csv(metadata_path)
 print(f"Loaded metadata with {len(metadata_df)} rows")
 
 # Create output directory for visualization images - as sibling to data folder
-vis_output_dir = pathlib.Path("./segmentation_visualizations")
+vis_output_dir = pathlib.Path("./data/segmentation_visualizations")
 vis_output_dir.mkdir(exist_ok=True)
 
 # %% [code] 
@@ -257,7 +253,7 @@ rle_masks = {}
 visualization_samples = []  # Store some samples to display later
 
 # Create directories for each newt ID in the visualization directory
-for newt_id in tqdm(os.listdir(gcns_dir)[:3]):  # Process first 3 newts for demo
+for newt_id in tqdm(os.listdir(gcns_dir)):  # Process first 3 newts for demo
     newt_vis_dir = vis_output_dir / newt_id
     newt_vis_dir.mkdir(exist_ok=True)
     
@@ -374,6 +370,7 @@ for newt_id in tqdm(os.listdir(gcns_dir)[:3]):  # Process first 3 newts for demo
 
 print(f"\nVisualization images saved to: {vis_output_dir.absolute()}")
 
+
 # %% [code] 
 # Display sample visualizations
 if visualization_samples:
@@ -407,26 +404,8 @@ def add_rle_to_metadata(metadata_df, rle_masks):
     
     # Try to match images - this depends on how paths are stored in your CSV
     for idx, row in metadata_df.iterrows():
-        # Adjust this matching logic based on your CSV structure
-        # Common patterns:
-        
-        # If CSV has full path:
-        if 'image_path' in metadata_df.columns:
-            image_key = row['image_path']
-        # If CSV has separate columns for newt_id and filename:
-        elif 'newt_id' in metadata_df.columns and 'filename' in metadata_df.columns:
-            image_key = f"{row['newt_id']}/{row['filename']}"
-        # If CSV has just filename and you need to find the newt_id:
-        else:
-            # You might need to adjust this based on your actual CSV structure
-            filename = row.get('filename', row.get('image_name', ''))
-            # Find which newt_id directory contains this file
-            for key in rle_masks.keys():
-                if filename in key:
-                    image_key = key
-                    break
-            else:
-                continue
+        # Create image key from newt_id and image_name
+        image_key = f"{row['newt_id']}/{row['image_name']}"
         
         # Set the RLE mask if we found a match
         if image_key in rle_masks:
@@ -447,7 +426,7 @@ mask_count = metadata_df['segmentation_mask_rle'].notna().sum()
 print(f"Added segmentation masks for {mask_count} out of {len(metadata_df)} images")
 
 # %% [code] 
-# Optional: Function to decode RLE masks back to binary masks
+#| export
 def decode_rle_mask(rle_string):
     """Decode RLE string back to binary mask"""
     if rle_string is None or pd.isna(rle_string):
@@ -455,7 +434,13 @@ def decode_rle_mask(rle_string):
     
     try:
         # Parse the RLE string format: "height x width : counts"
-        size_part, counts_part = rle_string.split(':')
+        # Use maxsplit=1 to only split on the first colon
+        parts = rle_string.split(':', 1)
+        if len(parts) != 2:
+            print(f"Invalid RLE format: {rle_string[:100]}...")
+            return None
+            
+        size_part, counts_part = parts
         height, width = map(int, size_part.split('x'))
         
         # Reconstruct RLE dict
@@ -469,21 +454,200 @@ def decode_rle_mask(rle_string):
         return mask
     except Exception as e:
         print(f"Error decoding RLE: {e}")
+        print(f"RLE string preview: {rle_string[:100]}...")
         return None
 
-# Example usage:
-sample_rle = metadata_df['segmentation_mask_rle'].dropna().iloc[0] if mask_count > 0 else None
-if sample_rle:
-    decoded_mask = decode_rle_mask(sample_rle)
-    if decoded_mask is not None:
-        print(f"Successfully decoded mask with shape: {decoded_mask.shape}")
-        
-        # Display the decoded mask
+# %% [code]
+#| export
+def visualize_segmentation(image_path, rle_string, mode='all', figsize=(15, 5)):
+    """
+    Visualize image with segmentation mask applied
+    
+    Args:
+        image_path (str): Path to the image file
+        rle_string (str): RLE-encoded segmentation mask
+        mode (str): Visualization mode - 'all', 'side_by_side', 'mask_only', 'overlay', 'cutout'
+        figsize (tuple): Figure size for matplotlib
+    
+    Returns:
+        tuple: (original_image, decoded_mask, masked_image) as numpy arrays
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from PIL import Image
+    import cv2
+    
+    # Load image
+    if isinstance(image_path, str):
+        pil_image = Image.open(image_path)
+        image = np.array(pil_image)
+    else:
+        # Assume it's already a numpy array or PIL image
+        if hasattr(image_path, 'convert'):  # PIL Image
+            image = np.array(image_path)
+        else:  # numpy array
+            image = image_path
+    
+    # Decode mask
+    mask = decode_rle_mask(rle_string)
+    
+    if mask is None:
+        print("Could not decode RLE mask")
         plt.figure(figsize=(8, 6))
-        plt.imshow(decoded_mask, cmap='gray')
-        plt.title("Decoded RLE Mask Example")
+        plt.imshow(image)
+        plt.title("Original Image (No mask available)")
         plt.axis('off')
         plt.show()
+        return image, None, None
+    
+    # Create masked image (cutout)
+    mask_bool = mask.astype(bool)
+    masked_image = np.zeros_like(image)
+    masked_image[mask_bool] = image[mask_bool]
+    
+    # Create overlay
+    overlay_image = image.copy()
+    if len(image.shape) == 3:  # Color image
+        # Create colored mask overlay (semi-transparent)
+        overlay_image[mask_bool] = overlay_image[mask_bool] * 0.7 + np.array([255, 0, 0]) * 0.3
+    
+    # Visualization based on mode
+    if mode == 'all':
+        fig, axes = plt.subplots(1, 4, figsize=(20, 5))
+        
+        axes[0].imshow(image)
+        axes[0].set_title("Original Image")
+        axes[0].axis('off')
+        
+        axes[1].imshow(mask, cmap='gray')
+        axes[1].set_title("Segmentation Mask")
+        axes[1].axis('off')
+        
+        axes[2].imshow(overlay_image)
+        axes[2].set_title("Overlay")
+        axes[2].axis('off')
+        
+        axes[3].imshow(masked_image)
+        axes[3].set_title("Segmented Cutout")
+        axes[3].axis('off')
+        
+        plt.tight_layout()
+        
+    elif mode == 'side_by_side':
+        fig, axes = plt.subplots(1, 2, figsize=figsize)
+        
+        axes[0].imshow(image)
+        axes[0].set_title("Original Image")
+        axes[0].axis('off')
+        
+        axes[1].imshow(masked_image)
+        axes[1].set_title("Segmented")
+        axes[1].axis('off')
+        
+        plt.tight_layout()
+        
+    elif mode == 'mask_only':
+        plt.figure(figsize=(8, 6))
+        plt.imshow(mask, cmap='gray')
+        plt.title("Segmentation Mask")
+        plt.axis('off')
+        
+    elif mode == 'overlay':
+        plt.figure(figsize=(8, 8))
+        plt.imshow(overlay_image)
+        plt.title("Image with Mask Overlay")
+        plt.axis('off')
+        
+    elif mode == 'cutout':
+        plt.figure(figsize=(8, 8))
+        plt.imshow(masked_image)
+        plt.title("Segmented Cutout")
+        plt.axis('off')
+    
+    plt.show()
+    
+    return image, mask, masked_image
+
+# %% [code]
+#| export  
+def visualize_segmentation_from_metadata(metadata_df, idx, base_path="", mode='all', figsize=(15, 5)):
+    """
+    Visualize segmentation for a specific row in metadata DataFrame
+    
+    Args:
+        metadata_df (pd.DataFrame): Metadata DataFrame with image paths and RLE masks
+        idx (int): Row index to visualize
+        base_path (str): Base path to prepend to image paths if needed
+        mode (str): Visualization mode - same as visualize_segmentation
+        figsize (tuple): Figure size for matplotlib
+    
+    Returns:
+        tuple: (original_image, decoded_mask, masked_image) as numpy arrays
+    """
+    import os
+    
+    row = metadata_df.iloc[idx]
+    
+    # Get image path
+    image_path = None
+    for col in ['image_path', 'path', 'file_path']:
+        if col in row and pd.notna(row[col]):
+            image_path = row[col]
+            break
+    
+    if image_path is None:
+        raise ValueError("No valid image path found in metadata row")
+    
+    # Construct full path
+    full_path = os.path.join(base_path, image_path) if base_path else image_path
+    
+    # Get RLE string
+    rle_string = row.get('segmentation_mask_rle', None)
+    
+    if pd.isna(rle_string):
+        print(f"No segmentation mask available for row {idx}")
+        rle_string = None
+    
+    print(f"Visualizing: {image_path}")
+    if rle_string:
+        print(f"RLE mask available: {len(str(rle_string))} characters")
+    
+    return visualize_segmentation(full_path, rle_string, mode=mode, figsize=figsize)
+
+
+# %% [code]
+# Example usage of the exported functions:
+# Count number of masks
+mask_count = metadata_df['segmentation_mask_rle'].notna().sum()
+print(f"Found {mask_count} segmentation masks in metadata")
+
+# Get first available mask if any exist
+sample_rle = metadata_df['segmentation_mask_rle'].dropna().iloc[0] if mask_count > 0 else None
+if sample_rle:
+    # Find the corresponding image path
+    sample_idx = metadata_df['segmentation_mask_rle'].dropna().index[0]
+    
+    # Debug: show the RLE string format
+    print(f"Sample RLE string: {sample_rle[:100]}...")
+    
+    # Test decode function directly
+    test_mask = decode_rle_mask(sample_rle)
+    if test_mask is not None:
+        print(f"Successfully decoded mask with shape: {test_mask.shape}")
+        
+        # Now try the visualization function
+        print("Using exported visualization function:")
+        try:
+            image, mask, masked = visualize_segmentation_from_metadata(metadata_df, sample_idx, base_path="./data", mode='side_by_side')
+            print(f"Returned image shape: {image.shape}")
+            print(f"Returned mask shape: {mask.shape}")
+            print(f"Returned masked image shape: {masked.shape}")
+        except Exception as e:
+            print(f"Visualization error: {e}")
+    else:
+        print("Failed to decode mask")
+else:
+    print("No segmentation masks found in metadata")
 
 # %% [code] 
 # Show directory structure
@@ -548,7 +712,8 @@ print("Fixing metadata paths and removing unnecessary columns...")
 # Remove the Unnamed: 0 column if it exists
 if 'Unnamed: 0' in metadata_df.columns:
     metadata_df = metadata_df.drop('Unnamed: 0', axis=1)
-    print("Removed 'Unnamed: 0' column")
+    metadata_df = metadata_df.drop('is_probe', axis=1)
+    print("Removed 'Unnamed: 0' and 'is_probe' columns")
 
 # Update image paths in metadata to match new structure
 def fix_image_paths(metadata_df):

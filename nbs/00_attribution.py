@@ -3,7 +3,7 @@
 #> Notebook for attribution testing
 
 # %%
-#| default_exp attribution
+#| default_exp core
 
 #%%
 import os

@@ -7,4 +7,8 @@ d = { 'settings': { 'branch': 'main',
                 'lib_path': 'gcn_reid'},
   'syms': { 'gcn_reid.attribution': { 'gcn_reid.attribution.my_occlusion_sensitivity': ( 'attribution.html#my_occlusion_sensitivity',
                                                                                          'gcn_reid/attribution.py')},
-            'gcn_reid.core': {'gcn_reid.core.foo': ('core.html#foo', 'gcn_reid/core.py')}}}
+            'gcn_reid.core': {'gcn_reid.core.my_occlusion_sensitivity': ('attribution.html#my_occlusion_sensitivity', 'gcn_reid/core.py')},
+            'gcn_reid.seg': { 'gcn_reid.seg.decode_rle_mask': ('gcn_seg.html#decode_rle_mask', 'gcn_reid/seg.py'),
+                              'gcn_reid.seg.visualize_segmentation': ('gcn_seg.html#visualize_segmentation', 'gcn_reid/seg.py'),
+                              'gcn_reid.seg.visualize_segmentation_from_metadata': ( 'gcn_seg.html#visualize_segmentation_from_metadata',
+                                                                                     'gcn_reid/seg.py')}}}
