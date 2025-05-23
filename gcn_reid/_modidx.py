@@ -5,4 +5,6 @@ d = { 'settings': { 'branch': 'main',
                 'doc_host': 'https://mshahoyi.github.io',
                 'git_url': 'https://github.com/mshahoyi/gcn-reid',
                 'lib_path': 'gcn_reid'},
-  'syms': {'gcn_reid.core': {'gcn_reid.core.foo': ('core.html#foo', 'gcn_reid/core.py')}}}
+  'syms': { 'gcn_reid.attribution': { 'gcn_reid.attribution.my_occlusion_sensitivity': ( 'attribution.html#my_occlusion_sensitivity',
+                                                                                         'gcn_reid/attribution.py')},
+            'gcn_reid.core': {'gcn_reid.core.foo': ('core.html#foo', 'gcn_reid/core.py')}}}

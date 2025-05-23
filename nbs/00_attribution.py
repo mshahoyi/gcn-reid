@@ -1,3 +1,10 @@
+# %% [markdown]
+# # Attribution--the attribution toolkit
+#> Notebook for attribution testing
+
+# %%
+#| default_exp attribution
+
 #%%
 import os
 import torch
@@ -146,6 +153,7 @@ similarity_model.eval()
 # ## Occlusion Sensitivity
 
 #%%
+#| export
 def my_occlusion_sensitivity(model, image1, image2, patch_size=16, stride=8, occlusion_value=0):
     """
     Perform occlusion sensitivity test on the first image to see which regions
