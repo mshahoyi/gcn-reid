@@ -3,7 +3,11 @@
 #> Notebook for attribution testing
 
 # %%
-#| default_exp core
+#| default_exp attribution
+
+# %%
+#| export
+import torch
 
 #%%
 import os
@@ -154,7 +158,7 @@ similarity_model.eval()
 
 #%%
 #| export
-def my_occlusion_sensitivity(model, image1, image2, patch_size=16, stride=8, occlusion_value=0):
+def my_occlusion_sensitivity(model, image1, image2, patch_size=16, stride=8, occlusion_value=0, device=None):
     """
     Perform occlusion sensitivity test on the first image to see which regions
     affect similarity with the second image.
@@ -171,8 +175,9 @@ def my_occlusion_sensitivity(model, image1, image2, patch_size=16, stride=8, occ
         Sensitivity map showing which regions, when occluded, affect similarity the most
     """
     # Move tensors to the right device
-    image1 = image1.to(device)
-    image2 = image2.to(device)
+    if device is not None:
+        image1 = image1.to(device)
+        image2 = image2.to(device)
     
     # Get the original similarity score
     with torch.no_grad():

@@ -1,0 +1,22 @@
+Obtaining bq_helper from git+https://github.com/SohierDane/BigQuery_Helper@8615a7f6c1663e7f2d48aa2b32c2dbcb600a440f#egg=bq_helper (from -r requirements.txt (line 51))
+  Cloning https://github.com/SohierDane/BigQuery_Helper (to revision 8615a7f6c1663e7f2d48aa2b32c2dbcb600a440f) to ./src/bq-helper
+  Running command git clone --filter=blob:none --quiet https://github.com/SohierDane/BigQuery_Helper /kaggle/working/gcn-reid/src/bq-helper
+  Running command git rev-parse -q --verify 'sha^8615a7f6c1663e7f2d48aa2b32c2dbcb600a440f'
+  Running command git fetch -q https://github.com/SohierDane/BigQuery_Helper 8615a7f6c1663e7f2d48aa2b32c2dbcb600a440f
+  Resolved https://github.com/SohierDane/BigQuery_Helper to commit 8615a7f6c1663e7f2d48aa2b32c2dbcb600a440f
+  Preparing metadata (setup.py): started
+  error: subprocess-exited-with-error
+  
+  × python setup.py egg_info did not run successfully.
+  │ exit code: 1
+  ╰─> See above for output.
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  Preparing metadata (setup.py): finished with status 'error'
+error: metadata-generation-failed
+
+× Encountered error while generating package metadata.
+╰─> See above for output.
+
+note: This is an issue with the package mentioned above, not pip.
+hint: See above for details.

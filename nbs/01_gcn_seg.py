@@ -3,7 +3,7 @@
 # > This notebook is used to segment the newts in the Barhill dataset using the Grounded-SAM-2 model.
 
 # %%
-#|default_exp seg
+#|default_exp segmentation
 
 # %% [code] 
 import os
@@ -19,6 +19,15 @@ except:
     %cd gsam2
     os.system('pip install -q -e . -e grounding_dino')
     os.system('pip install -q supervision')
+
+# %% [code] 
+#| export 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import pycocotools.mask as mask_util
+from PIL import Image
+
 
 # %% [code] 
 import argparse
@@ -931,12 +940,13 @@ for item in dataset_dir.iterdir():
         size_mb = item.stat().st_size / (1024*1024)
         print(f"  📄 {item.name}: {size_mb:.2f} MB")
 
-# %% [code]
 # Upload to Kaggle
 print("\n" + "="*50)
 print("UPLOADING TO KAGGLE")
 print("="*50)
 
+
+# %%
 try:
     import subprocess
     import tempfile
@@ -957,41 +967,39 @@ try:
     original_cwd = os.getcwd()
     os.chdir(dataset_dir)
     
-    print("Uploading dataset to Kaggle...")
+    print("Checking if dataset exists...")
+    
+    # Check if dataset exists
+    check_result = subprocess.run([
+        "kaggle", "datasets", "list", 
+        "--user", "mshahoyi",
+        "--search", "barhill-newts-segmented"
+    ], capture_output=True, text=True)
+    
+    dataset_exists = "barhill-newts-segmented" in check_result.stdout
+    
     print(f"Current directory: {os.getcwd()}")
     print(f"Files to upload: {list(pathlib.Path('.').iterdir())}")
     
-    # Try to create the dataset
-    try:
+    if dataset_exists:
+        print("Dataset exists, updating...")
         result = subprocess.run([
-            "kaggle", "datasets", "create", 
-            "-p", ".", 
+            "kaggle", "datasets", "version",
+            "-p", ".",
+            "-m", "Updated with segmentation masks",
             "--dir-mode", "zip"
         ], capture_output=True, text=True, check=True)
-        
-        print("✅ Dataset uploaded successfully!")
+        print("✅ Dataset updated successfully!")
         print("Output:", result.stdout)
-        
-    except subprocess.CalledProcessError as e:
-        print("Dataset creation failed, trying to update existing dataset...")
-        print("Error:", e.stderr)
-        
-        # Try updating existing dataset
-        try:
-            result = subprocess.run([
-                "kaggle", "datasets", "version",
-                "-p", ".",
-                "-m", "Updated with segmentation masks",
-                "--dir-mode", "zip"
-            ], capture_output=True, text=True, check=True)
-            
-            print("✅ Dataset updated successfully!")
-            print("Output:", result.stdout)
-            
-        except subprocess.CalledProcessError as e2:
-            print("❌ Failed to upload/update dataset")
-            print("Error:", e2.stderr)
-            print("You may need to manually upload or check your Kaggle API credentials")
+    else:
+        print("Dataset does not exist, creating new...")
+        result = subprocess.run([
+            "kaggle", "datasets", "create",
+            "-p", ".",
+            "--dir-mode", "zip"
+        ], capture_output=True, text=True, check=True)
+        print("✅ Dataset created successfully!")
+        print("Output:", result.stdout)
     
     # Change back to original directory
     os.chdir(original_cwd)
@@ -1000,10 +1008,8 @@ except Exception as e:
     print(f"❌ Error during upload: {str(e)}")
     print("You may need to upload manually using:")
     print(f"cd {dataset_dir}")
-    print("kaggle datasets create -p . --dir-mode zip")
+    print("kaggle datasets create/version -p . --dir-mode zip")
 
-print(f"\nDataset available at: https://www.kaggle.com/datasets/mshahoyi/barhill-newts-segmented")
-
-# %%
+print(f"\nDataset available at: https://www.kaggle.com/datasets/mshahoyi/barhill-newts-segmented")# %%
 #| hide
 import nbdev; nbdev.nbdev_export()
