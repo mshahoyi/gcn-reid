@@ -38,32 +38,17 @@ from sam2.sam2_image_predictor import SAM2ImagePredictor
 from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
 import pandas as pd
 
-# %% [code] {"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2025-05-23T16:35:06.186611Z","iopub.execute_input":"2025-05-23T16:35:06.187077Z","iopub.status.idle":"2025-05-23T16:35:06.194678Z","shell.execute_reply.started":"2025-05-23T16:35:06.187049Z","shell.execute_reply":"2025-05-23T16:35:06.193975Z"}}
-"""
-Hyper parameters
-"""
-parser = argparse.ArgumentParser()
-parser.add_argument('--grounding-model', default="IDEA-Research/grounding-dino-tiny")
-parser.add_argument("--text-prompt", default="car. tire.")
-parser.add_argument("--img-path", default="notebooks/images/truck.jpg")
-parser.add_argument("--sam2-checkpoint", default="./checkpoints/sam2.1_hiera_large.pt")
-parser.add_argument("--sam2-model-config", default="configs/sam2.1/sam2.1_hiera_l.yaml")
-parser.add_argument("--output-dir", default="outputs/test_sam2.1")
-parser.add_argument("--no-dump-json", action="store_true")
-parser.add_argument("--force-cpu", action="store_true")
+# %% [code]
+GROUNDING_MODEL = "IDEA-Research/grounding-dino-tiny"
+TEXT_PROMPT = "car. tire."
+IMG_PATH = "notebooks/images/truck.jpg"
+SAM2_CHECKPOINT = "./checkpoints/sam2.1_hiera_large.pt"
+SAM2_MODEL_CONFIG = "configs/sam2.1/sam2.1_hiera_l.yaml"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+OUTPUT_DIR = Path("outputs/test_sam2.1")
+DUMP_JSON_RESULTS = True
 
-args = vars(parser.parse_args([]))
-
-GROUNDING_MODEL = args['grounding_model']
-TEXT_PROMPT = args['text_prompt']
-IMG_PATH = args['img_path']
-SAM2_CHECKPOINT = args['sam2_checkpoint']
-SAM2_MODEL_CONFIG = args['sam2_model_config']
-DEVICE = "cuda" if torch.cuda.is_available() and not args['force_cpu'] else "cpu"
-OUTPUT_DIR = Path(args['output_dir'])
-DUMP_JSON_RESULTS = not args['no_dump_json']
-
-# %% [code] {"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2025-05-23T16:35:06.196540Z","iopub.execute_input":"2025-05-23T16:35:06.196790Z","iopub.status.idle":"2025-05-23T16:35:06.420025Z","shell.execute_reply.started":"2025-05-23T16:35:06.196765Z","shell.execute_reply":"2025-05-23T16:35:06.419457Z"}}
+# %% [code] 
 # create output directory
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -76,25 +61,29 @@ if torch.cuda.get_device_properties(0).major >= 8:
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
-# %% [code] {"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2025-05-23T16:35:06.421192Z","iopub.execute_input":"2025-05-23T16:35:06.421423Z","iopub.status.idle":"2025-05-23T16:35:15.939337Z","shell.execute_reply.started":"2025-05-23T16:35:06.421384Z","shell.execute_reply":"2025-05-23T16:35:15.938460Z"}}
+# %% [code] 
 %cd checkpoints
 !bash download_ckpts.sh
 %cd ..
 
-# %% [code] {"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2025-05-23T16:35:15.940541Z","iopub.execute_input":"2025-05-23T16:35:15.940814Z","iopub.status.idle":"2025-05-23T16:35:19.713176Z","shell.execute_reply.started":"2025-05-23T16:35:15.940791Z","shell.execute_reply":"2025-05-23T16:35:19.712363Z"}}
+# %% [code] 
 # build SAM2 image predictor
 sam2_checkpoint = SAM2_CHECKPOINT
 model_cfg = SAM2_MODEL_CONFIG
 sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=DEVICE)
 sam2_predictor = SAM2ImagePredictor(sam2_model)
 
-# %% [code] {"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2025-05-23T16:35:19.714090Z","iopub.execute_input":"2025-05-23T16:35:19.714835Z","iopub.status.idle":"2025-05-23T16:35:31.003093Z","shell.execute_reply.started":"2025-05-23T16:35:19.714803Z","shell.execute_reply":"2025-05-23T16:35:31.002444Z"}}
+# %% [code] 
 # build grounding dino from huggingface
 model_id = GROUNDING_MODEL
 processor = AutoProcessor.from_pretrained(model_id)
 grounding_model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to(DEVICE)
 
-# %% [code] {"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2025-05-23T16:35:31.003952Z","iopub.execute_input":"2025-05-23T16:35:31.004176Z","iopub.status.idle":"2025-05-23T16:35:31.010058Z","shell.execute_reply.started":"2025-05-23T16:35:31.004159Z","shell.execute_reply":"2025-05-23T16:35:31.009459Z"}}
+# %% [code] 
+# Go back to parent directory to access data
+%cd ..
+
+# %% [code] 
 import pathlib
 
 image = pathlib.Path("./data/barhill/GCNs/GCN10-P1-S2/IMG_2367.JPEG")
@@ -105,20 +94,20 @@ text = "the lizard."
 img_path = image
 text, img_path
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 image = Image.open(img_path)
 image
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 sam2_predictor.set_image(np.array(image.convert("RGB")))
 
 inputs = processor(images=image, text=text, return_tensors="pt").to(DEVICE)
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 with torch.no_grad():
     outputs = grounding_model(**inputs)
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 results = processor.post_process_grounded_object_detection(
     outputs,
     inputs.input_ids,
@@ -142,7 +131,7 @@ Results is a list of dict with the following structure:
 """
 results
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 # get the box prompt for SAM 2
 input_boxes = results[0]["boxes"].cpu().numpy()
 
@@ -153,11 +142,11 @@ masks, scores, logits = sam2_predictor.predict(
     multimask_output=False,
 )
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 img = np.array(image)
 img.shape
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 """
 Post-process the output of the model to get the masks, scores, and logits for visualization
 """
@@ -177,7 +166,7 @@ labels = [
 ]
 confidences, class_names, class_ids, labels
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 import matplotlib.pyplot as plt
 
 """
@@ -219,7 +208,7 @@ plt.imshow(cv2.cvtColor(annotated_frame_labels, cv2.COLOR_BGR2RGB))
 plt.axis('off')
 plt.show()
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 # --- Annotate Masks ---
 # If CUSTOM_COLOR_MAP is a list of hex strings:
 mask_annotator = sv.MaskAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP))
@@ -238,115 +227,16 @@ plt.imshow(cv2.cvtColor(annotated_frame_final, cv2.COLOR_BGR2RGB))
 plt.axis('off')
 plt.show()
 
-# %% [markdown] {"jupyter":{"outputs_hidden":false}}
+# %% [markdown] 
 # # Segment the DS
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 ds_dir = pathlib.Path("./data/barhill")
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 gcns_dir = ds_dir/'GCNs'
-cropped_dir = ds_dir/'gcns-cropped'
-cropped_dir.mkdir(exist_ok=True)
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
-from tqdm import tqdm
-
-# Create directories for each newt ID in the cropped directory
-for newt_id in tqdm(os.listdir(gcns_dir)[:1]):
-    newt_cropped_dir = os.path.join(cropped_dir, newt_id)
-    os.makedirs(newt_cropped_dir, exist_ok=True)
-    
-    image_names = os.listdir(os.path.join(gcns_dir, newt_id))
-    image_paths = [os.path.join(gcns_dir, newt_id, image) for image in image_names]
-    images_cropped = []
-    
-    # Process images one by one to avoid memory issues
-    for image_path, image_name in zip(image_paths, image_names):
-        try:
-            # Load image
-            image = cv2.imread(image_path)
-            if image is None:
-                print(f"Could not read image {image_path}, skipping")
-                continue
-                
-            # Convert to PIL for grounding model
-            pil_image = Image.open(image_path)
-            
-            # Process single image with grounding model
-            inputs = processor(images=pil_image, text=text, return_tensors="pt").to(DEVICE)
-            
-            with torch.no_grad(): 
-                outputs = grounding_model(**inputs)
-
-            results = processor.post_process_grounded_object_detection(
-                outputs,
-                inputs.input_ids,
-                box_threshold=0.4,
-                text_threshold=0.3,
-                target_sizes=[(image.shape[0], image.shape[1])]
-            )[0]  # Get first (and only) result
-            
-            # Skip if no detections
-            if len(results["boxes"]) == 0:
-                print(f"No detections for {image_path}, skipping")
-                continue
-                
-            # Get the highest confidence box
-            confidence_scores = results["scores"]
-            best_box_idx = torch.argmax(confidence_scores)
-            box = results["boxes"][best_box_idx].cpu().numpy()
-            
-            # Convert box to SAM format
-            sam_box = box.astype(int)
-            
-            # Generate mask with SAM
-            sam2_predictor.set_image(pil_image.convert("RGB"))
-            masks, _, _ = sam2_predictor.predict(
-                box=sam_box,
-                multimask_output=False
-            )
-            
-            # Apply mask to image
-            mask = masks[0]  # Get the first (and only) mask
-
-            BACKGROUND_COLOR = (0, 0, 0) # Black
-            current_mask = mask.astype(bool)
-            
-            cutout_bgr = np.full_like(image, BACKGROUND_COLOR, dtype=np.uint8)
-            cutout_bgr[current_mask] = image[current_mask]
-
-            true_points = np.argwhere(current_mask)
-            if true_points.size > 0: # Check if the mask is not empty
-                y_min, x_min = true_points.min(axis=0)
-                y_max, x_max = true_points.max(axis=0)
-                cropped_cutout = cutout_bgr[y_min:y_max+1, x_min:x_max+1]
-            else:
-                # Handle empty mask case if necessary (e.g., skip saving)
-                print(f"Warning: Mask {i} is empty, skipping cutout saving.")
-            
-            # Create transparent background
-            rgba = cv2.cvtColor(cropped_cutout, cv2.COLOR_BGR2RGB)
-            images_cropped.append((pil_image.convert("RGB"), rgba))
-            
-            # Save the masked image
-            output_path = os.path.join(newt_cropped_dir, image_name)
-            cv2.imwrite(output_path, cv2.cvtColor(rgba, cv2.COLOR_BGR2RGB))
-            print(f"processing {image_path}")
-            
-        except Exception as e:
-            print(f"Error processing {image_path}: {str(e)}")
-            continue
-
-    for i, (im, cropped) in enumerate(images_cropped):
-        plt.figure(figsize=(10, 5))
-        plt.subplot(1, 2, 1)
-        plt.imshow(im)
-        plt.subplot(1, 2, 2)
-        plt.imshow(cropped)
-    plt.show()
-
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 import pandas as pd
 
 # Load the metadata CSV
@@ -358,7 +248,7 @@ print(f"Loaded metadata with {len(metadata_df)} rows")
 vis_output_dir = pathlib.Path("./segmentation_visualizations")
 vis_output_dir.mkdir(exist_ok=True)
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
@@ -484,7 +374,7 @@ for newt_id in tqdm(os.listdir(gcns_dir)[:3]):  # Process first 3 newts for demo
 
 print(f"\nVisualization images saved to: {vis_output_dir.absolute()}")
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 # Display sample visualizations
 if visualization_samples:
     fig, axes = plt.subplots(len(visualization_samples), 2, figsize=(15, 5 * len(visualization_samples)))
@@ -507,7 +397,7 @@ if visualization_samples:
 else:
     print("No visualization samples to display")
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 # Update the metadata CSV with RLE masks
 def add_rle_to_metadata(metadata_df, rle_masks):
     """Add RLE mask column to metadata DataFrame"""
@@ -556,7 +446,7 @@ print(f"Updated metadata saved to {updated_csv_path}")
 mask_count = metadata_df['segmentation_mask_rle'].notna().sum()
 print(f"Added segmentation masks for {mask_count} out of {len(metadata_df)} images")
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 # Optional: Function to decode RLE masks back to binary masks
 def decode_rle_mask(rle_string):
     """Decode RLE string back to binary mask"""
@@ -595,9 +485,360 @@ if sample_rle:
         plt.axis('off')
         plt.show()
 
-# %% [code] {"jupyter":{"outputs_hidden":false}}
+# %% [code] 
 # Show directory structure
 print("Directory structure:")
 print(f"Data directory: {ds_dir.absolute()}")
 print(f"Visualizations directory: {vis_output_dir.absolute()}")
 print(f"Total visualization subdirectories created: {len(list(vis_output_dir.iterdir()))}")
+
+# %% [markdown]
+# # Create New Kaggle Dataset
+
+# %% [code]
+import shutil
+from datetime import datetime
+
+# Create dataset directory under data/
+dataset_name = "barhill-segmented"
+dataset_dir = pathlib.Path(f"./data/{dataset_name}")
+dataset_dir.mkdir(exist_ok=True)
+
+print(f"Creating new dataset: {dataset_name}")
+
+# Create subdirectories
+original_images_dir = dataset_dir / "original_images"
+sample_visualizations_dir = dataset_dir / "sample_segmentations" 
+original_images_dir.mkdir(exist_ok=True)
+sample_visualizations_dir.mkdir(exist_ok=True)
+
+print("Created dataset subdirectories")
+
+# %% [code]
+# Copy original images (newt directories directly under original_images, not under GCNs)
+print("Copying original images...")
+shutil.copytree(gcns_dir, original_images_dir, dirs_exist_ok=True)
+print(f"Copied {len(list(original_images_dir.iterdir()))} newt directories")
+
+# Copy a sample of visualization images (limit to avoid large dataset)
+print("Copying sample visualizations...")
+vis_count = 0
+max_vis_samples = 50  # Limit to 50 visualization images
+
+for newt_dir in vis_output_dir.iterdir():
+    if newt_dir.is_dir() and vis_count < max_vis_samples:
+        sample_newt_dir = sample_visualizations_dir / newt_dir.name
+        sample_newt_dir.mkdir(exist_ok=True)
+        
+        # Copy up to 5 images per newt
+        vis_images = list(newt_dir.glob("*_segmented.jpg"))
+        for img_path in vis_images[:5]:
+            if vis_count < max_vis_samples:
+                shutil.copy2(img_path, sample_newt_dir / img_path.name)
+                vis_count += 1
+            else:
+                break
+
+print(f"Copied {vis_count} visualization sample images")
+
+# %% [code]
+# Fix metadata and save
+print("Fixing metadata paths and removing unnecessary columns...")
+
+# Remove the Unnamed: 0 column if it exists
+if 'Unnamed: 0' in metadata_df.columns:
+    metadata_df = metadata_df.drop('Unnamed: 0', axis=1)
+    print("Removed 'Unnamed: 0' column")
+
+# Update image paths in metadata to match new structure
+def fix_image_paths(metadata_df):
+    """Fix image paths to point to correct locations in new dataset"""
+    
+    # Create a mapping of old paths to new paths
+    path_mapping = {}
+    
+    for idx, row in metadata_df.iterrows():
+        # Try different possible path column names
+        old_path = None
+        if 'image_path' in metadata_df.columns:
+            old_path = row['image_path']
+        elif 'path' in metadata_df.columns:
+            old_path = row['path']
+        elif 'file_path' in metadata_df.columns:
+            old_path = row['file_path']
+        
+        if old_path and isinstance(old_path, str):
+            # Extract newt_id and filename from old path
+            # Old path might be like: "barhill/GCNs/GCN10-P1-S2/IMG_2367.JPEG"
+            path_parts = pathlib.Path(old_path).parts
+            
+            # Find GCNs in the path and get the parts after it
+            try:
+                gcns_idx = path_parts.index('GCNs')
+                newt_id = path_parts[gcns_idx + 1]
+                filename = path_parts[-1]
+                
+                # New path format: "original_images/GCN10-P1-S2/IMG_2367.JPEG"
+                new_path = f"original_images/{newt_id}/{filename}"
+                
+                # Update the metadata
+                if 'image_path' in metadata_df.columns:
+                    metadata_df.at[idx, 'image_path'] = new_path
+                elif 'path' in metadata_df.columns:
+                    metadata_df.at[idx, 'path'] = new_path
+                elif 'file_path' in metadata_df.columns:
+                    metadata_df.at[idx, 'file_path'] = new_path
+                    
+                path_mapping[old_path] = new_path
+                
+            except (ValueError, IndexError):
+                print(f"Could not parse path: {old_path}")
+                continue
+    
+    return metadata_df, path_mapping
+
+metadata_df, path_mapping = fix_image_paths(metadata_df)
+print(f"Updated {len(path_mapping)} image paths")
+
+# Save the updated metadata CSV
+metadata_dest = dataset_dir / "metadata.csv"
+metadata_df.to_csv(metadata_dest, index=False)
+print(f"Saved metadata CSV to: {metadata_dest}")
+
+# %% [code]
+# Verify image paths exist (assertions)
+print("Verifying image paths...")
+missing_files = []
+verified_count = 0
+
+for idx, row in metadata_df.iterrows():
+    # Get the image path from the row
+    image_path = None
+    if 'image_path' in metadata_df.columns:
+        image_path = row['image_path']
+    elif 'path' in metadata_df.columns:
+        image_path = row['path']
+    elif 'file_path' in metadata_df.columns:
+        image_path = row['file_path']
+    
+    if image_path and isinstance(image_path, str):
+        full_path = dataset_dir / image_path
+        if full_path.exists():
+            verified_count += 1
+        else:
+            missing_files.append(str(full_path))
+
+print(f"Verified {verified_count} out of {len(metadata_df)} image paths")
+
+if missing_files:
+    print(f"WARNING: {len(missing_files)} files are missing!")
+    for missing in missing_files[:10]:  # Show first 10 missing files
+        print(f"  Missing: {missing}")
+    if len(missing_files) > 10:
+        print(f"  ... and {len(missing_files) - 10} more")
+else:
+    print("✅ All image paths verified successfully!")
+
+# Assert that we have a reasonable number of valid paths
+assert verified_count > 0, "No valid image paths found!"
+assert verified_count / len(metadata_df) > 0.5, f"Too many missing files: {len(missing_files)} missing out of {len(metadata_df)}"
+
+print("Path verification passed!")
+
+# %% [code]
+# Create dataset info file
+dataset_info = {
+    "title": "Barhill Great Crested Newts - Segmented Dataset",
+    "description": """
+This dataset contains Great Crested Newt images from the Barhill dataset with added segmentation masks.
+
+Contents:
+- original_images/: Original newt images organized by individual ID directories
+- sample_segmentations/: Sample images showing segmentation results with bounding boxes and masks
+- metadata.csv: Complete metadata with RLE-encoded segmentation masks
+
+The segmentation masks were generated using Grounded-SAM-2 model to detect and segment newts.
+Each row in metadata.csv contains an 'segmentation_mask_rle' column with RLE-encoded binary masks.
+
+Use the decode_rle_mask() function from the original notebook to convert RLE strings back to binary masks.
+""",
+    "created": datetime.now().isoformat(),
+    "source": "Generated from Barhill dataset using Grounded-SAM-2 segmentation"
+}
+
+# Write dataset info
+with open(dataset_dir / "dataset-info.json", "w") as f:
+    json.dump(dataset_info, f, indent=2)
+
+print(f"Created dataset info file")
+
+# %% [code]
+# Create README for the dataset
+readme_content = f"""# Barhill Great Crested Newts - Segmented Dataset
+
+This dataset contains Great Crested Newt images with automatically generated segmentation masks.
+
+## Contents
+
+### original_images/
+Original newt images organized by individual newt ID directories.
+Each directory contains images for one individual newt.
+
+### sample_segmentations/
+Sample images showing the segmentation results with:
+- Bounding boxes around detected newts
+- Confidence scores
+- Segmentation masks overlaid
+
+### metadata.csv
+Complete metadata file with the following key columns:
+- `segmentation_mask_rle`: RLE-encoded binary segmentation masks
+- `image_path`: Path to the original image within this dataset
+- Other original metadata columns from the source dataset
+
+## Usage
+
+To decode the RLE masks back to binary format:
+
+```python
+import pycocotools.mask as mask_util
+import pandas as pd
+
+def decode_rle_mask(rle_string):
+    if pd.isna(rle_string):
+        return None
+    
+    size_part, counts_part = rle_string.split(':')
+    height, width = map(int, size_part.split('x'))
+    
+    rle_dict = {{
+        'size': [height, width],
+        'counts': counts_part.encode('utf-8')
+    }}
+    
+    return mask_util.decode(rle_dict)
+
+# Load metadata and decode a mask
+df = pd.read_csv('metadata.csv')
+mask = decode_rle_mask(df['segmentation_mask_rle'].iloc[0])
+```
+
+## Generation Details
+
+- **Model**: Grounded-SAM-2 (IDEA-Research/grounding-dino-tiny + SAM2.1)
+- **Text prompt**: "the lizard."
+- **Detection threshold**: 0.4 box threshold, 0.3 text threshold
+- **Segmentation**: SAM2 with highest confidence detection box as prompt
+
+## Dataset Statistics
+
+- Total images: {len(metadata_df)} 
+- Images with segmentation masks: {mask_count}
+- Sample visualizations included: {vis_count}
+- Verified image paths: {verified_count}
+
+Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+
+with open(dataset_dir / "README.md", "w") as f:
+    f.write(readme_content)
+
+print("Created README.md")
+
+# %% [code]
+# Print dataset summary
+print("\n" + "="*50)
+print("DATASET CREATION COMPLETE")
+print("="*50)
+print(f"Dataset name: {dataset_name}")
+print(f"Dataset directory: {dataset_dir.absolute()}")
+
+total_size_mb = sum(f.stat().st_size for f in dataset_dir.rglob('*') if f.is_file()) / (1024*1024)
+print(f"Total size: {total_size_mb:.1f} MB")
+
+print("\nDataset contents:")
+for item in dataset_dir.iterdir():
+    if item.is_dir():
+        file_count = len(list(item.rglob('*')))
+        dir_size_mb = sum(f.stat().st_size for f in item.rglob('*') if f.is_file()) / (1024*1024)
+        print(f"  📁 {item.name}/: {file_count} files ({dir_size_mb:.1f} MB)")
+    else:
+        size_mb = item.stat().st_size / (1024*1024)
+        print(f"  📄 {item.name}: {size_mb:.2f} MB")
+
+# %% [code]
+# Upload to Kaggle
+print("\n" + "="*50)
+print("UPLOADING TO KAGGLE")
+print("="*50)
+
+try:
+    import subprocess
+    import tempfile
+    
+    # Create dataset metadata for Kaggle
+    kaggle_metadata = {
+        "title": "Barhill Great Crested Newts - Segmented Dataset",
+        "id": "mshahoyi/barhill-newts-segmented",
+        "licenses": [{"name": "CC0-1.0"}],
+        "keywords": ["biology", "computer-vision", "segmentation", "animals", "newts"]
+    }
+    
+    # Write Kaggle dataset metadata
+    with open(dataset_dir / "dataset-metadata.json", "w") as f:
+        json.dump(kaggle_metadata, f, indent=2)
+    
+    # Change to dataset directory and upload
+    original_cwd = os.getcwd()
+    os.chdir(dataset_dir)
+    
+    print("Uploading dataset to Kaggle...")
+    print(f"Current directory: {os.getcwd()}")
+    print(f"Files to upload: {list(pathlib.Path('.').iterdir())}")
+    
+    # Try to create the dataset
+    try:
+        result = subprocess.run([
+            "kaggle", "datasets", "create", 
+            "-p", ".", 
+            "--dir-mode", "zip"
+        ], capture_output=True, text=True, check=True)
+        
+        print("✅ Dataset uploaded successfully!")
+        print("Output:", result.stdout)
+        
+    except subprocess.CalledProcessError as e:
+        print("Dataset creation failed, trying to update existing dataset...")
+        print("Error:", e.stderr)
+        
+        # Try updating existing dataset
+        try:
+            result = subprocess.run([
+                "kaggle", "datasets", "version",
+                "-p", ".",
+                "-m", "Updated with segmentation masks",
+                "--dir-mode", "zip"
+            ], capture_output=True, text=True, check=True)
+            
+            print("✅ Dataset updated successfully!")
+            print("Output:", result.stdout)
+            
+        except subprocess.CalledProcessError as e2:
+            print("❌ Failed to upload/update dataset")
+            print("Error:", e2.stderr)
+            print("You may need to manually upload or check your Kaggle API credentials")
+    
+    # Change back to original directory
+    os.chdir(original_cwd)
+    
+except Exception as e:
+    print(f"❌ Error during upload: {str(e)}")
+    print("You may need to upload manually using:")
+    print(f"cd {dataset_dir}")
+    print("kaggle datasets create -p . --dir-mode zip")
+
+print(f"\nDataset available at: https://www.kaggle.com/datasets/mshahoyi/barhill-newts-segmented")
+
+# %%
+#| hide
+import nbdev; nbdev.nbdev_export()
