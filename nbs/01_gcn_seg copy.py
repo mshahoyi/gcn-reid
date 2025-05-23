@@ -1,38 +1,32 @@
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-23T16:26:13.497651Z","iopub.execute_input":"2025-05-23T16:26:13.497836Z","iopub.status.idle":"2025-05-23T16:26:16.197300Z","shell.execute_reply.started":"2025-05-23T16:26:13.497821Z","shell.execute_reply":"2025-05-23T16:26:16.196783Z"}}
-# This Python 3 environment comes with many helpful analytics libraries installed
-# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
-# For example, here's several helpful packages to load
+# %% [markdown]
+# # GCN Segmentation
+#> Segmenting the GCNs from the Barhill dataset
 
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-
-# Input data files are available in the read-only "../input/" directory
-# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
-
+# %%
+#| default_exp seg
 import os
-for dirname, _, filenames in os.walk('/kaggle/input'):
-    for filename in filenames:
-        # print(os.path.join(dirname, filename))
-        pass
 
-# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
-# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
-
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-23T16:26:16.198875Z","iopub.execute_input":"2025-05-23T16:26:16.199393Z"}}
-!pip install -q supervision
-!git clone https://github.com/IDEA-Research/Grounded-SAM-2 gsam2
+if not os.path.exists('./data/barhill'):
+    os.system('kaggle datasets download mshahoyi/barhills-processed --unzip -p ./data')
+print('Data source import complete.')
 
 # %%
-%cd /kaggle/working/gcn-reid/nbs/gsam2
-!pwd
-# os.system('cd gsam2')
+if not os.path.exists('./gsam2'):
+    os.system('git clone https://github.com/IDEA-Research/Grounded-SAM-2 gsam2')
+
+try:
+    import supervision
+except ImportError:
+    os.system('pip install -q supervision iopath')
+    os.system('pip install -e gsam2 -e gsam2/grounding_dino')
 
 # %%
-!pip install -q -e . -e grounding_dino
-
-# %% [code]
 import argparse
 import os
+import sys
+sys.path.insert(0, os.path.realpath('./gsam2'))
+
+# %%    
 import cv2
 import json
 import torch
@@ -40,72 +34,47 @@ import numpy as np
 import supervision as sv
 from pathlib import Path
 from supervision.draw.color import ColorPalette
-from utils.supervision_utils import CUSTOM_COLOR_MAP
+from gsam2.utils.supervision_utils import CUSTOM_COLOR_MAP
 from PIL import Image
-from sam2.build_sam import build_sam2
-from sam2.sam2_image_predictor import SAM2ImagePredictor
-from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection 
+from gsam2.sam2.build_sam import build_sam2_hf
+from gsam2.sam2.sam2_image_predictor import SAM2ImagePredictor
+from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
+import pathlib
+from omegaconf import OmegaConf
 
-# %% [code]
-"""
-Hyper parameters
-"""
-parser = argparse.ArgumentParser()
-parser.add_argument('--grounding-model', default="IDEA-Research/grounding-dino-base")
-parser.add_argument("--text-prompt", default="car. tire.")
-parser.add_argument("--img-path", default="notebooks/images/truck.jpg")
-parser.add_argument("--sam2-checkpoint", default="./checkpoints/sam2.1_hiera_large.pt")
-parser.add_argument("--sam2-model-config", default="configs/sam2.1/sam2.1_hiera_l.yaml")
-parser.add_argument("--output-dir", default="outputs/test_sam2.1")
-parser.add_argument("--no-dump-json", action="store_true")
-parser.add_argument("--force-cpu", action="store_true")
+# %%
+GROUNDING_MODEL = "IDEA-Research/grounding-dino-tiny"
+TEXT_PROMPT = "car. tire."
+IMG_PATH = "notebooks/images/truck.jpg"
+OUTPUT_DIR = Path("outputs/test_sam2.1")
+DUMP_JSON_RESULTS = True
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-args = vars(parser.parse_args([]))
-
-GROUNDING_MODEL = args['grounding_model']
-TEXT_PROMPT = args['text_prompt']
-IMG_PATH = args['img_path']
-SAM2_CHECKPOINT = args['sam2_checkpoint']
-SAM2_MODEL_CONFIG = args['sam2_model_config']
-DEVICE = "cuda" if torch.cuda.is_available() and not args['force_cpu'] else "cpu"
-OUTPUT_DIR = Path(args['output_dir'])
-DUMP_JSON_RESULTS = not args['no_dump_json']
-
-# %% [code]
 # create output directory
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # environment settings
-# use bfloat16
-# torch.autocast(device_type=DEVICE, dtype=torch.bfloat16).__enter__()
-
 if torch.cuda.get_device_properties(0).major >= 8:
     # turn on tfloat32 for Ampere GPUs (https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices)
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
-# %% [code]
-%cd /kaggle/working/gcn-reid/nbs/gsam2/checkpoints
-!bash download_ckpts.sh
-%cd /kaggle/working/gcn-reid/nbs/gsam2
+# %%
+os.system('cd gsam2/checkpoints && bash download_ckpts.sh')
 
-# %% [code]
-# build SAM2 image predictor
-sam2_checkpoint = SAM2_CHECKPOINT
-model_cfg = SAM2_MODEL_CONFIG
-sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=DEVICE)
+# %%
+# build SAM2 image predictor using HuggingFace
+model_id = "facebook/sam2-hiera-large"  # Use HF model ID
+sam2_model = build_sam2_hf(model_id, device=DEVICE)
 sam2_predictor = SAM2ImagePredictor(sam2_model)
 
-# %% [code]
 # build grounding dino from huggingface
 model_id = GROUNDING_MODEL
 processor = AutoProcessor.from_pretrained(model_id)
 grounding_model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to(DEVICE)
 
-# %% [code]
-import pathlib
-
-image = pathlib.Path("/kaggle/input/barhills-processed/barhill/GCNs/GCN10-P1-S2/IMG_2367.JPEG")
+# %%
+image = pathlib.Path("./data/barhill/GCNs/GCN10-P1-S2/IMG_2367.JPEG")
 
 # setup the input image and text prompt for SAM 2 and Grounding DINO
 # VERY important: text queries need to be lowercased + end with a dot
@@ -113,20 +82,18 @@ text = "the lizard."
 img_path = image
 text, img_path
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:56:49.810349Z","iopub.execute_input":"2025-05-05T21:56:49.810555Z","iopub.status.idle":"2025-05-05T21:56:50.771806Z","shell.execute_reply.started":"2025-05-05T21:56:49.810539Z","shell.execute_reply":"2025-05-05T21:56:50.771045Z"}}
+# %%
 image = Image.open(img_path)
 image
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:56:50.772686Z","iopub.execute_input":"2025-05-05T21:56:50.773016Z","iopub.status.idle":"2025-05-05T21:56:52.634121Z","shell.execute_reply.started":"2025-05-05T21:56:50.772980Z","shell.execute_reply":"2025-05-05T21:56:52.633292Z"}}
+# %%
 sam2_predictor.set_image(np.array(image.convert("RGB")))
 
 inputs = processor(images=image, text=text, return_tensors="pt").to(DEVICE)
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:56:52.635052Z","iopub.execute_input":"2025-05-05T21:56:52.635766Z","iopub.status.idle":"2025-05-05T21:56:55.405617Z","shell.execute_reply.started":"2025-05-05T21:56:52.635740Z","shell.execute_reply":"2025-05-05T21:56:55.404828Z"}}
 with torch.no_grad():
     outputs = grounding_model(**inputs)
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:06.197763Z","iopub.execute_input":"2025-05-05T21:57:06.198092Z","iopub.status.idle":"2025-05-05T21:57:06.332128Z","shell.execute_reply.started":"2025-05-05T21:57:06.198068Z","shell.execute_reply":"2025-05-05T21:57:06.331506Z"}}
 results = processor.post_process_grounded_object_detection(
     outputs,
     inputs.input_ids,
@@ -139,8 +106,8 @@ results = processor.post_process_grounded_object_detection(
 Results is a list of dict with the following structure:
 [
     {
-        'scores': tensor([0.7969, 0.6469, 0.6002, 0.4220], device='cuda:0'), 
-        'labels': ['car', 'tire', 'tire', 'tire'], 
+        'scores': tensor([0.7969, 0.6469, 0.6002, 0.4220], device='cuda:0'),
+        'labels': ['car', 'tire', 'tire', 'tire'],
         'boxes': tensor([[  89.3244,  278.6940, 1710.3505,  851.5143],
                         [1392.4701,  554.4064, 1628.6133,  777.5872],
                         [ 436.1182,  621.8940,  676.5255,  851.6897],
@@ -150,7 +117,7 @@ Results is a list of dict with the following structure:
 """
 results
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:06.333387Z","iopub.execute_input":"2025-05-05T21:57:06.333660Z","iopub.status.idle":"2025-05-05T21:57:06.523983Z","shell.execute_reply.started":"2025-05-05T21:57:06.333644Z","shell.execute_reply":"2025-05-05T21:57:06.523187Z"}}
+# %%
 # get the box prompt for SAM 2
 input_boxes = results[0]["boxes"].cpu().numpy()
 
@@ -161,13 +128,13 @@ masks, scores, logits = sam2_predictor.predict(
     multimask_output=False,
 )
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:06.524859Z","iopub.execute_input":"2025-05-05T21:57:06.525118Z","iopub.status.idle":"2025-05-05T21:57:06.551319Z","shell.execute_reply.started":"2025-05-05T21:57:06.525101Z","shell.execute_reply":"2025-05-05T21:57:06.550737Z"}}
 img = np.array(image)
 img.shape
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:24.928487Z","iopub.execute_input":"2025-05-05T21:57:24.929136Z","iopub.status.idle":"2025-05-05T21:57:25.757781Z","shell.execute_reply.started":"2025-05-05T21:57:24.929111Z","shell.execute_reply":"2025-05-05T21:57:25.756916Z"}}
+# %%
 import matplotlib.pyplot as plt
 
+# %%
 BACKGROUND_COLOR = (0, 0, 0) # Black
 mask = masks[0]
 current_mask = mask.astype(bool)
@@ -182,9 +149,11 @@ cutout_bgr = np.full_like(img, BACKGROUND_COLOR, dtype=np.uint8)
 # will make the object opaque. Where the mask is False, the alpha
 # channel remains 0 from the initialization, making it transparent.
 cutout_bgr[current_mask] = img[current_mask]
+
+# %%
 plt.imshow(cutout_bgr)
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:25.758910Z","iopub.execute_input":"2025-05-05T21:57:25.759193Z","iopub.status.idle":"2025-05-05T21:57:26.025478Z","shell.execute_reply.started":"2025-05-05T21:57:25.759166Z","shell.execute_reply":"2025-05-05T21:57:26.024737Z"}}
+# %%
 # --- Optional: Cropping to the bounding box of the mask ---
 # This creates smaller images containing only the object, reducing file size.
 # Find coordinates where the mask is True
@@ -200,14 +169,14 @@ else:
     # Handle empty mask case if necessary (e.g., skip saving)
     print(f"Warning: Mask {i} is empty, skipping cutout saving.")
 
+# %%
 plt.imshow(cropped_cutout)
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:26.026317Z","iopub.execute_input":"2025-05-05T21:57:26.026618Z","iopub.status.idle":"2025-05-05T21:57:26.131067Z","shell.execute_reply.started":"2025-05-05T21:57:26.026590Z","shell.execute_reply":"2025-05-05T21:57:26.130320Z"}}
-%cd /kaggle/working
+# Commented out IPython magic to ensure Python compatibility.
+# %cd /kaggle/working
 cv2.imwrite("test.jpg", cv2.cvtColor(cropped_cutout, cv2.COLOR_BGR2RGB)) # Saves the cropped version
 # print(f"Saved cutout to: {output_path}") # Optional: print each save
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:26.132670Z","iopub.execute_input":"2025-05-05T21:57:26.132919Z","iopub.status.idle":"2025-05-05T21:57:26.139648Z","shell.execute_reply.started":"2025-05-05T21:57:26.132902Z","shell.execute_reply":"2025-05-05T21:57:26.138936Z"}}
 """
 Post-process the output of the model to get the masks, scores, and logits for visualization
 """
@@ -227,12 +196,14 @@ labels = [
 ]
 confidences, class_names, class_ids, labels
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:26.140396Z","iopub.execute_input":"2025-05-05T21:57:26.140891Z","iopub.status.idle":"2025-05-05T21:57:26.821054Z","shell.execute_reply.started":"2025-05-05T21:57:26.140867Z","shell.execute_reply":"2025-05-05T21:57:26.819984Z"}}
+# %%
 import matplotlib.pyplot as plt
 
+# %%
 """
 Visualize image with supervision useful API
 """
+# %%
 img = cv2.imread(img_path)
 detections = sv.Detections(
     xyxy=input_boxes,  # (n, 4)
@@ -240,11 +211,13 @@ detections = sv.Detections(
     class_id=class_ids
 )
 
+# %%
 """
 Note that if you want to use default color map,
 you can set color=ColorPalette.DEFAULT
 """
 
+# %%
 # --- Annotate Boxes ---
 # Note that if you want to use default color map,
 # you can set color=sv.ColorPalette.DEFAULT
@@ -252,6 +225,7 @@ you can set color=ColorPalette.DEFAULT
 box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP))
 annotated_frame_boxes = box_annotator.annotate(scene=img.copy(), detections=detections)
 
+# %%
 # --- Annotate Labels ---
 # If CUSTOM_COLOR_MAP is a list of hex strings:
 label_annotator = sv.LabelAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP), text_color=sv.Color.BLACK) # Specify text color if needed
@@ -259,9 +233,11 @@ label_annotator = sv.LabelAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_
 # labels = [f"{class_names[i]}: {scores[i]:0.2f}" for i in range(len(class_names))]
 annotated_frame_labels = label_annotator.annotate(scene=annotated_frame_boxes.copy(), detections=detections, labels=labels)
 
+# %%
 # --- Save intermediate image (optional) ---
 cv2.imwrite(os.path.join(OUTPUT_DIR, "groundingdino_annotated_image.jpg"), annotated_frame_labels)
 
+# %%
 # --- Visualize intermediate image (boxes + labels) INLINE ---
 print("Displaying image with boxes and labels:")
 plt.figure(figsize=(10, 10)) # Adjust size as needed
@@ -269,7 +245,7 @@ plt.imshow(cv2.cvtColor(annotated_frame_labels, cv2.COLOR_BGR2RGB))
 plt.axis('off')
 plt.show()
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:26.822143Z","iopub.execute_input":"2025-05-05T21:57:26.822411Z","iopub.status.idle":"2025-05-05T21:57:27.827421Z","shell.execute_reply.started":"2025-05-05T21:57:26.822391Z","shell.execute_reply":"2025-05-05T21:57:27.826376Z"}}
+# %%
 # --- Annotate Masks ---
 # If CUSTOM_COLOR_MAP is a list of hex strings:
 mask_annotator = sv.MaskAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP))
@@ -278,9 +254,11 @@ mask_annotator = sv.MaskAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MA
 # However, the supervision docs often show chaining like this. Let's assume chaining:
 annotated_frame_final = mask_annotator.annotate(scene=annotated_frame_labels.copy(), detections=detections) # Use copy to avoid modifying annotated_frame_labels
 
+# %%
 # --- Save final image ---
 cv2.imwrite(os.path.join(OUTPUT_DIR, "grounded_sam2_annotated_image_with_mask.jpg"), annotated_frame_final)
 
+# %%
 # --- Visualize final image (boxes + labels + masks) INLINE ---
 print("\nDisplaying final image with boxes, labels, and masks:")
 plt.figure(figsize=(15, 15)) # Adjust size as needed
@@ -288,31 +266,24 @@ plt.imshow(cv2.cvtColor(annotated_frame_final, cv2.COLOR_BGR2RGB))
 plt.axis('off')
 plt.show()
 
-# %% [markdown]
-# # Segment the DS
-
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:27.828368Z","iopub.execute_input":"2025-05-05T21:57:27.828589Z","iopub.status.idle":"2025-05-05T21:57:47.692854Z","shell.execute_reply.started":"2025-05-05T21:57:27.828572Z","shell.execute_reply":"2025-05-05T21:57:47.691955Z"}}
-ds_dir = pathlib.Path("/kaggle/input/barhills-processed/barhill")
-!cp -R {ds_dir} .
-
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:57:47.694087Z","iopub.execute_input":"2025-05-05T21:57:47.694326Z","iopub.status.idle":"2025-05-05T21:57:47.699032Z","shell.execute_reply.started":"2025-05-05T21:57:47.694302Z","shell.execute_reply":"2025-05-05T21:57:47.698281Z"}}
-ds_dir = pathlib.Path('/kaggle/working/barhill')
+# %%
+# Segment the DS
+ds_dir = pathlib.Path("./data/barhill")
 gcns_dir = ds_dir/'GCNs'
 cropped_dir = ds_dir/'gcns-cropped'
 cropped_dir.mkdir(exist_ok=True)
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T21:58:15.392430Z","iopub.execute_input":"2025-05-05T21:58:15.392911Z","iopub.status.idle":"2025-05-05T22:00:14.668177Z","shell.execute_reply.started":"2025-05-05T21:58:15.392884Z","shell.execute_reply":"2025-05-05T22:00:14.667416Z"}}
 from tqdm import tqdm
 
 # Create directories for each newt ID in the cropped directory
 for newt_id in tqdm(os.listdir(gcns_dir)):
     newt_cropped_dir = os.path.join(cropped_dir, newt_id)
     os.makedirs(newt_cropped_dir, exist_ok=True)
-    
+
     image_names = os.listdir(os.path.join(gcns_dir, newt_id))
     image_paths = [os.path.join(gcns_dir, newt_id, image) for image in image_names]
     images_cropped = []
-    
+
     # Process images one by one to avoid memory issues
     for image_path, image_name in zip(image_paths, image_names):
         try:
@@ -321,14 +292,14 @@ for newt_id in tqdm(os.listdir(gcns_dir)):
             if image is None:
                 print(f"Could not read image {image_path}, skipping")
                 continue
-                
+
             # Convert to PIL for grounding model
             pil_image = Image.open(image_path)
-            
+
             # Process single image with grounding model
             inputs = processor(images=pil_image, text=text, return_tensors="pt").to(DEVICE)
-            
-            with torch.no_grad(): 
+
+            with torch.no_grad():
                 outputs = grounding_model(**inputs)
 
             results = processor.post_process_grounded_object_detection(
@@ -338,33 +309,33 @@ for newt_id in tqdm(os.listdir(gcns_dir)):
                 text_threshold=0.3,
                 target_sizes=[(image.shape[0], image.shape[1])]
             )[0]  # Get first (and only) result
-            
+
             # Skip if no detections
             if len(results["boxes"]) == 0:
                 print(f"No detections for {image_path}, skipping")
                 continue
-                
+
             # Get the highest confidence box
             confidence_scores = results["scores"]
             best_box_idx = torch.argmax(confidence_scores)
             box = results["boxes"][best_box_idx].cpu().numpy()
-            
+
             # Convert box to SAM format
             sam_box = box.astype(int)
-            
+
             # Generate mask with SAM
             sam2_predictor.set_image(pil_image.convert("RGB"))
             masks, _, _ = sam2_predictor.predict(
                 box=sam_box,
                 multimask_output=False
             )
-            
+
             # Apply mask to image
             mask = masks[0]  # Get the first (and only) mask
 
             BACKGROUND_COLOR = (0, 0, 0) # Black
             current_mask = mask.astype(bool)
-            
+
             cutout_bgr = np.full_like(image, BACKGROUND_COLOR, dtype=np.uint8)
             cutout_bgr[current_mask] = image[current_mask]
 
@@ -376,16 +347,16 @@ for newt_id in tqdm(os.listdir(gcns_dir)):
             else:
                 # Handle empty mask case if necessary (e.g., skip saving)
                 print(f"Warning: Mask {i} is empty, skipping cutout saving.")
-            
+
             # Create transparent background
             rgba = cv2.cvtColor(cropped_cutout, cv2.COLOR_BGR2RGB)
             images_cropped.append((pil_image.convert("RGB"), rgba))
-            
+
             # Save the masked image
             output_path = os.path.join(newt_cropped_dir, image_name)
             cv2.imwrite(output_path, cv2.cvtColor(rgba, cv2.COLOR_BGR2RGB))
             print(f"processing {image_path}")
-            
+
         except Exception as e:
             print(f"Error processing {image_path}: {str(e)}")
             continue
@@ -398,8 +369,8 @@ for newt_id in tqdm(os.listdir(gcns_dir)):
         plt.imshow(cropped)
     plt.show()
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-05-05T22:02:00.805256Z","iopub.execute_input":"2025-05-05T22:02:00.805794Z","iopub.status.idle":"2025-05-05T22:02:01.579963Z","shell.execute_reply.started":"2025-05-05T22:02:00.805770Z","shell.execute_reply":"2025-05-05T22:02:01.579043Z"}}
-!rm -rf gsam2
-!rm test.jpg
+# %%
+os.system('rm -rf gsam2')
+os.system('rm test.jpg')
 
-# %% [code]
+# %%
