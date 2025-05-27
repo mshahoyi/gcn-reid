@@ -94,7 +94,7 @@ dataset.plot_grid()
 
 # %%
 from wildlife_datasets import analysis
-
+# %%
 analysis.display_statistics(dataset.df)
 
 # %% [markdown]
@@ -103,6 +103,7 @@ analysis.display_statistics(dataset.df)
 # %%
 from wildlife_datasets import datasets, splits
 
+# %%
 splitter = splits.ClosedSetSplit(0.9)
 for idx_database, idx_query in splitter.split(dataset.df):
     df_database, df_query = dataset.df.loc[idx_database], dataset.df.loc[idx_query]
@@ -115,6 +116,7 @@ for idx_database, idx_query in splitter.split(dataset.df):
 from wildlife_tools.data import ImageDataset
 import torchvision.transforms as T
 
+# %%
 transform = T.Compose([T.Resize([384, 384]), T.ToTensor(), T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
 dataset_database = datasets.WildlifeDataset(df=df_database, root=dataset.root, transform=transform)
 dataset_query = datasets.WildlifeDataset(df=df_query, root=dataset.root, transform=transform)
@@ -124,6 +126,7 @@ import timm
 import torch
 from wildlife_tools.features import DeepFeatures
 
+# %%
 name = 'hf-hub:BVRA/MegaDescriptor-L-384'
 device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 extractor = DeepFeatures(timm.create_model(name, num_classes=0, pretrained=True), 
@@ -140,6 +143,7 @@ database = extractor(CroppingImageDataset(dataset_database.df, root=dataset_data
 # %%
 from wildlife_tools.similarity import CosineSimilarity
 
+# %%
 similarity_function = CosineSimilarity()
 similarity = similarity_function(query, database)
 
@@ -147,6 +151,7 @@ similarity = similarity_function(query, database)
 import numpy as np
 from wildlife_tools.inference import TopkClassifier, KnnClassifier
 
+# %%
 top_5_classifier = TopkClassifier(k=5, database_labels=dataset_database.labels_string, return_all=True)
 predictions_top_5, scores_top_5, _ = top_5_classifier(similarity)
 
@@ -161,6 +166,7 @@ accuracy_top_1, accuracy_top_5
 from sklearn.metrics import average_precision_score
 import numpy as np
 
+# %%
 def calculate_map(query_labels, database_labels, similarity_matrix):
     """
     Calculate mean Average Precision (mAP) for retrieval task.
@@ -282,6 +288,7 @@ plot_retrieval_results(dataset_query, dataset_database, similarity, num_results=
 # %%
 from transformers import AutoModel
 
+# %%
 miew_id_model = AutoModel.from_pretrained("conservationxlabs/miewid-msv2", trust_remote_code=True)
 
 miew_id_extractor = DeepFeatures(miew_id_model, 

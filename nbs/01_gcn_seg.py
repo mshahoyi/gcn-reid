@@ -2,6 +2,11 @@
 # # Newt Segmentation
 # > This notebook is used to segment the newts in the Barhill dataset using the Grounded-SAM-2 model.
 
+#%% [markdown]
+# ---
+# skip_showdoc: true
+# ---
+
 # %%
 #|default_exp segmentation
 
@@ -28,13 +33,17 @@ import matplotlib.pyplot as plt
 import pycocotools.mask as mask_util
 from PIL import Image
 
-
+ 
 # %% [code] 
+#|eval: false
 import argparse
 import os
 import cv2
 import json
 import torch
+import pandas as pd
+import subprocess
+import tempfile
 import numpy as np
 import supervision as sv
 import pycocotools.mask as mask_util
@@ -42,6 +51,7 @@ from pathlib import Path
 from supervision.draw.color import ColorPalette
 from utils.supervision_utils import CUSTOM_COLOR_MAP
 from PIL import Image
+import matplotlib.pyplot as plt
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
@@ -174,7 +184,6 @@ labels = [
 confidences, class_names, class_ids, labels
 
 # %% [code] 
-import matplotlib.pyplot as plt
 
 """
 Visualize image with supervision useful API
@@ -242,8 +251,6 @@ ds_dir = pathlib.Path("./data/barhill")
 gcns_dir = ds_dir/'GCNs'
 
 # %% [code] 
-import pandas as pd
-
 # Load the metadata CSV
 metadata_path = "./data/barhill/gallery_and_probes.csv"
 metadata_df = pd.read_csv(metadata_path)
@@ -257,6 +264,7 @@ vis_output_dir.mkdir(exist_ok=True)
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+# %%
 # Initialize list to store RLE masks - we'll match by image filename
 rle_masks = {}
 visualization_samples = []  # Store some samples to display later
@@ -468,6 +476,11 @@ def decode_rle_mask(rle_string):
 
 # %% [code]
 #| export
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+import cv2
+
 def visualize_segmentation(image_path, rle_string, mode='all', figsize=(15, 5)):
     """
     Visualize image with segmentation mask applied
@@ -481,10 +494,6 @@ def visualize_segmentation(image_path, rle_string, mode='all', figsize=(15, 5)):
     Returns:
         tuple: (original_image, decoded_mask, masked_image) as numpy arrays
     """
-    import matplotlib.pyplot as plt
-    import numpy as np
-    from PIL import Image
-    import cv2
     
     # Load image
     if isinstance(image_path, str):
@@ -672,6 +681,7 @@ print(f"Total visualization subdirectories created: {len(list(vis_output_dir.ite
 import shutil
 from datetime import datetime
 
+# %%
 # Create dataset directory under data/
 dataset_name = "barhill-segmented"
 dataset_dir = pathlib.Path(f"./data/{dataset_name}")
@@ -948,9 +958,6 @@ print("="*50)
 
 # %%
 try:
-    import subprocess
-    import tempfile
-    
     # Create dataset metadata for Kaggle
     kaggle_metadata = {
         "title": "Barhill Great Crested Newts - Segmented Dataset",
@@ -1011,5 +1018,7 @@ except Exception as e:
     print("kaggle datasets create/version -p . --dir-mode zip")
 
 print(f"\nDataset available at: https://www.kaggle.com/datasets/mshahoyi/barhill-newts-segmented")# %%
+
+# %%
 #| hide
 import nbdev; nbdev.nbdev_export()

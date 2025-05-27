@@ -1,5 +1,7 @@
 data/
 dataframes/
+_proc/
+gsam2/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

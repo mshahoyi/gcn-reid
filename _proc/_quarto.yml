@@ -20,3 +20,6 @@ website:
     style: floating
 
 metadata-files: [nbdev.yml, sidebar.yml]
+
+execute:
+  enabled: false  # This disables execution globally
