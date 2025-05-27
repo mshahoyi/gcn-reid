@@ -37,25 +37,36 @@ from wildlife_datasets import datasets
 # # Create Dataset Class
 
 #%%
-class BarhillNewtsDataset(datasets.WildlifeDataset):
-    @classmethod
-    def _download(cls, dataset_name, download_path):
-        if not os.path.exists(download_path):
-            os.makedirs(download_path, exist_ok=True)
-            kaggle.api.dataset_download_files(dataset_name, path=download_path, unzip=True)
-            print(f"Dataset downloaded to {download_path}")
-        else:
-            print(f"Dataset already exists at {download_path}")
+#| export
+def get_newt_dataset():
+    from wildlife_datasets import datasets
+    import os
+    import kaggle
+    import pandas as pd
 
-    def create_catalogue(self) -> pd.DataFrame:
-        df = pd.read_csv(os.path.join(self.root, "metadata.csv"))
-        return df.rename(columns={"newt_id": "identity", "image_id": "image_name", "image_path": "path"})
+    class BarhillNewtsDataset(datasets.WildlifeDataset):
+        @classmethod
+        def _download(cls, dataset_name, download_path):
+            if not os.path.exists(download_path):
+                os.makedirs(download_path, exist_ok=True)
+                kaggle.api.dataset_download_files(dataset_name, path=download_path, unzip=True)
+                print(f"Dataset downloaded to {download_path}")
+            else:
+                print(f"Dataset already exists at {download_path}")
+
+        def create_catalogue(self) -> pd.DataFrame:
+            df = pd.read_csv(os.path.join(self.root, "metadata.csv"))
+            return df.rename(columns={"newt_id": "identity", "image_id": "image_name", "image_path": "path"})
+    
+    return BarhillNewtsDataset
 
 # %%
 #| export
 def get_cropped_newt(path, rle):
     import cv2
     from gcn_reid.segmentation import decode_rle_mask
+    from PIL import Image
+    import numpy as np
 
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -68,33 +79,41 @@ def get_cropped_newt(path, rle):
     return Image.fromarray(masked_img)
 
 # %%
+#| export
+def get_cropping_image_dataset():
+    import cv2
+    from PIL import Image
+    from wildlife_tools.data import ImageDataset
 
-
-class CroppingImageDataset(ImageDataset):
-    """Dataset that crops an image using an RLE segmentation mask."""
-    
-    def __init__(self, *image_dataset_args, crop_out=True, rle_col="segmentation_mask_rle", **image_dataset_kwargs):
-        super().__init__(*image_dataset_args, **image_dataset_kwargs)
-        self.crop_out = crop_out
-        self.rle_col = rle_col
-
-    def get_image(self, path):
-        img = cv2.imread(path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        if not self.crop_out: return Image.fromarray(img)
+    class CroppingImageDataset(ImageDataset):
+        """Dataset that crops an image using an RLE segmentation mask."""
         
-        relative_path = path.replace(self.root, "")[1:] # remove leading /
-        rle = self.metadata[self.metadata[self.col_path] == relative_path][self.rle_col].values
-        if len(rle) == 0: return Image.fromarray(img)
-        return get_cropped_newt(path, rle[0])
+        def __init__(self, *image_dataset_args, crop_out=True, rle_col="segmentation_mask_rle", **image_dataset_kwargs):
+            super().__init__(*image_dataset_args, **image_dataset_kwargs)
+            self.crop_out = crop_out
+            self.rle_col = rle_col
 
+        def get_image(self, path):
+            img = cv2.imread(path)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+            if not self.crop_out: return Image.fromarray(img)
+            
+            relative_path = path.replace(self.root, "")[1:] # remove leading /
+            rle = self.metadata[self.metadata[self.col_path] == relative_path][self.rle_col].values
+            if len(rle) == 0: return Image.fromarray(img)
+            return get_cropped_newt(path, rle[0])
+
+    return CroppingImageDataset
+
+# %%
+CroppingImageDataset = get_cropping_image_dataset()
 
 # %%
 dataset_path = "data/newt_dataset"
-BarhillNewtsDataset._download(dataset_name="mshahoyi/barhill-newts-segmented", download_path=dataset_path)
-dataset = BarhillNewtsDataset(dataset_path)
+NewtDataset = get_newt_dataset()
+NewtDataset._download(dataset_name="mshahoyi/barhill-newts-segmented", download_path=dataset_path)
+dataset = NewtDataset(dataset_path)
 dataset.df.head()
 
 # %%
@@ -105,7 +124,6 @@ analysis.display_statistics(dataset.df)
 
 # %% [markdown]
 # # Create Query and Database Sets
-
 
 # %%
 splitter = splits.ClosedSetSplit(0.9)

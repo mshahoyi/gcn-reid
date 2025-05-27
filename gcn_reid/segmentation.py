@@ -5,16 +5,12 @@
 # %% auto 0
 __all__ = ['decode_rle_mask', 'visualize_segmentation', 'visualize_segmentation_from_metadata']
 
-# %% ../nbs/01_gcn_seg.ipynb 4
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import pycocotools.mask as mask_util
-from PIL import Image
-
 # %% ../nbs/01_gcn_seg.ipynb 29
 def decode_rle_mask(rle_string):
     """Decode RLE string back to binary mask"""
+    import pandas as pd
+    import pycocotools.mask as mask_util
+    
     if rle_string is None or pd.isna(rle_string):
         return None
     
@@ -57,6 +53,7 @@ def visualize_segmentation(image_path, rle_string, mode='all', figsize=(15, 5)):
     Returns:
         tuple: (original_image, decoded_mask, masked_image) as numpy arrays
     """
+
     import matplotlib.pyplot as plt
     import numpy as np
     from PIL import Image

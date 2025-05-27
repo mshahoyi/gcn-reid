@@ -444,6 +444,9 @@ print(f"Added segmentation masks for {mask_count} out of {len(metadata_df)} imag
 #| export
 def decode_rle_mask(rle_string):
     """Decode RLE string back to binary mask"""
+    import pandas as pd
+    import pycocotools.mask as mask_util
+    
     if rle_string is None or pd.isna(rle_string):
         return None
     

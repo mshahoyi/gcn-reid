@@ -5,10 +5,7 @@
 # %% auto 0
 __all__ = ['my_occlusion_sensitivity']
 
-# %% ../nbs/00_attribution.ipynb 2
-import torch
-
-# %% ../nbs/00_attribution.ipynb 16
+# %% ../nbs/00_attribution.ipynb 15
 def my_occlusion_sensitivity(model, image1, image2, patch_size=16, stride=8, occlusion_value=0, device=None):
     """
     Perform occlusion sensitivity test on the first image to see which regions
@@ -25,6 +22,9 @@ def my_occlusion_sensitivity(model, image1, image2, patch_size=16, stride=8, occ
     Returns:
         Sensitivity map showing which regions, when occluded, affect similarity the most
     """
+
+    import torch
+
     # Move tensors to the right device
     if device is not None:
         image1 = image1.to(device)
