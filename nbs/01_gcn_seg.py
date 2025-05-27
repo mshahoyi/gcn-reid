@@ -13,10 +13,10 @@ if not os.path.exists("./data/barhill"):
 # %% [code] 
 try:
     import supervision
-    %cd gsam2
+    os.chdir("gsam2")
 except:
     os.system('git clone https://github.com/IDEA-Research/Grounded-SAM-2 gsam2')
-    %cd gsam2
+    os.chdir("gsam2")
     os.system('pip install -q -e . -e grounding_dino')
     os.system('pip install -q supervision')
 
@@ -69,9 +69,9 @@ if torch.cuda.get_device_properties(0).major >= 8:
     torch.backends.cudnn.allow_tf32 = True
 
 # %% [code] 
-%cd checkpoints
-!bash download_ckpts.sh
-%cd ..
+os.chdir("checkpoints")
+os.system("bash download_ckpts.sh")
+os.chdir("..")
 
 # %% [code] 
 # build SAM2 image predictor
@@ -88,7 +88,7 @@ grounding_model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).
 
 # %% [code] 
 # Go back to parent directory to access data
-%cd ..
+os.chdir("..")
 
 # %% [code] 
 import pathlib
