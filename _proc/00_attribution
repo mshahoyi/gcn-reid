@@ -5,10 +5,6 @@
 # %%
 #| default_exp attribution
 
-# %%
-#| export
-import torch
-
 #%%
 #| eval: false
 import os
@@ -175,6 +171,9 @@ def my_occlusion_sensitivity(model, image1, image2, patch_size=16, stride=8, occ
     Returns:
         Sensitivity map showing which regions, when occluded, affect similarity the most
     """
+
+    import torch
+
     # Move tensors to the right device
     if device is not None:
         image1 = image1.to(device)

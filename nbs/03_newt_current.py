@@ -6,33 +6,42 @@
 #| default_exp newt
 
 # %%
-#| export
+#| eval: false
 import os
 import sys
 import torch
-
-
-# %%
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from wildlife_tools.similarity import CosineSimilarity
+from wildlife_datasets import analysis
 import pycocotools.mask as mask_util
+from wildlife_datasets import datasets, splits
+from wildlife_tools.data import ImageDataset
+from sklearn.metrics import average_precision_score
+import numpy as np
+import timm
+from transformers import AutoModel
+import torch
+import numpy as np
+from wildlife_tools.inference import TopkClassifier, KnnClassifier
+from wildlife_tools.features import DeepFeatures
+import torchvision.transforms as T
 from PIL import Image
+import kaggle
+import pandas as pd
+from wildlife_tools.data import ImageDataset
+from wildlife_datasets import datasets
 
 # %% [markdown]
 # # Create Dataset Class
 
 #%%
-#| export
-import pandas as pd
-from wildlife_datasets import datasets
-
 class BarhillNewtsDataset(datasets.WildlifeDataset):
     @classmethod
     def _download(cls, dataset_name, download_path):
         if not os.path.exists(download_path):
             os.makedirs(download_path, exist_ok=True)
-            import kaggle
             kaggle.api.dataset_download_files(dataset_name, path=download_path, unzip=True)
             print(f"Dataset downloaded to {download_path}")
         else:
@@ -43,11 +52,11 @@ class BarhillNewtsDataset(datasets.WildlifeDataset):
         return df.rename(columns={"newt_id": "identity", "image_id": "image_name", "image_path": "path"})
 
 # %%
-import cv2
-from gcn_reid.segmentation import decode_rle_mask
-
 #| export
 def get_cropped_newt(path, rle):
+    import cv2
+    from gcn_reid.segmentation import decode_rle_mask
+
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
@@ -59,9 +68,8 @@ def get_cropped_newt(path, rle):
     return Image.fromarray(masked_img)
 
 # %%
-from wildlife_tools.data import ImageDataset
 
-#| export
+
 class CroppingImageDataset(ImageDataset):
     """Dataset that crops an image using an RLE segmentation mask."""
     
@@ -93,15 +101,11 @@ dataset.df.head()
 dataset.plot_grid()
 
 # %%
-from wildlife_datasets import analysis
-# %%
 analysis.display_statistics(dataset.df)
 
 # %% [markdown]
 # # Create Query and Database Sets
 
-# %%
-from wildlife_datasets import datasets, splits
 
 # %%
 splitter = splits.ClosedSetSplit(0.9)
@@ -113,18 +117,9 @@ for idx_database, idx_query in splitter.split(dataset.df):
 # # Test MegaDescriptor
 
 # %%
-from wildlife_tools.data import ImageDataset
-import torchvision.transforms as T
-
-# %%
 transform = T.Compose([T.Resize([384, 384]), T.ToTensor(), T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
 dataset_database = datasets.WildlifeDataset(df=df_database, root=dataset.root, transform=transform)
 dataset_query = datasets.WildlifeDataset(df=df_query, root=dataset.root, transform=transform)
-
-# %%
-import timm
-import torch
-from wildlife_tools.features import DeepFeatures
 
 # %%
 name = 'hf-hub:BVRA/MegaDescriptor-L-384'
@@ -141,15 +136,8 @@ query = extractor(CroppingImageDataset(dataset_query.df, root=dataset_query.root
 database = extractor(CroppingImageDataset(dataset_database.df, root=dataset_database.root, transform=dataset_database.transform, crop_out=False))
 
 # %%
-from wildlife_tools.similarity import CosineSimilarity
-
-# %%
 similarity_function = CosineSimilarity()
 similarity = similarity_function(query, database)
-
-# %%
-import numpy as np
-from wildlife_tools.inference import TopkClassifier, KnnClassifier
 
 # %%
 top_5_classifier = TopkClassifier(k=5, database_labels=dataset_database.labels_string, return_all=True)
@@ -160,11 +148,6 @@ accuracy_top_1 = np.mean(dataset_query.labels_string == predictions_top_5[:, 0])
 accuracy_top_5 = np.mean(np.any(predictions_top_5 == dataset_query.labels_string[:, np.newaxis], axis=1))
 
 accuracy_top_1, accuracy_top_5
-
-# %%
-# Calculate mean Average Precision (mAP)
-from sklearn.metrics import average_precision_score
-import numpy as np
 
 # %%
 def calculate_map(query_labels, database_labels, similarity_matrix):
@@ -200,8 +183,6 @@ map_score = calculate_map(dataset_query.labels_string, dataset_database.labels_s
 print(f"Mean Average Precision (mAP): {map_score:.4f}")
 
 # %%
-import matplotlib.pyplot as plt
-import numpy as np
 #| export
 def plot_retrieval_results(dataset_query, dataset_database, similarity_matrix, crop_out=False, mode = "mistakes", num_results=4, num_queries=5, figsize=(15, 20)):
     """
@@ -215,6 +196,8 @@ def plot_retrieval_results(dataset_query, dataset_database, similarity_matrix, c
         num_queries: Number of query images to display
         figsize: Figure size for the plot
     """
+    import matplotlib.pyplot as plt
+    import numpy as np
     
     fig, axes = plt.subplots(num_queries, num_results + 1, figsize=figsize)
     
@@ -284,9 +267,6 @@ plot_retrieval_results(dataset_query, dataset_database, similarity, num_results=
 
 # %% [markdown]
 # # Test MiewID
-
-# %%
-from transformers import AutoModel
 
 # %%
 miew_id_model = AutoModel.from_pretrained("conservationxlabs/miewid-msv2", trust_remote_code=True)

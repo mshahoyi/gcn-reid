@@ -11,11 +11,13 @@
 #|default_exp segmentation
 
 # %% [code] 
+#| eval: false
 import os
 if not os.path.exists("./data/barhill"):
     os.system("kaggle datasets download -d mshahoyi/barhills-processed --unzip -p ./data")
 
 # %% [code] 
+#| eval: false
 try:
     import supervision
     os.chdir("gsam2")
@@ -42,9 +44,14 @@ import cv2
 import json
 import torch
 import pandas as pd
+import pathlib
+import shutil
+from datetime import datetime
 import subprocess
 import tempfile
 import numpy as np
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 import supervision as sv
 import pycocotools.mask as mask_util
 from pathlib import Path
@@ -101,7 +108,6 @@ grounding_model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).
 os.chdir("..")
 
 # %% [code] 
-import pathlib
 
 image = pathlib.Path("./data/barhill/GCNs/GCN10-P1-S2/IMG_2367.JPEG")
 
@@ -259,10 +265,6 @@ print(f"Loaded metadata with {len(metadata_df)} rows")
 # Create output directory for visualization images - as sibling to data folder
 vis_output_dir = pathlib.Path("./data/segmentation_visualizations")
 vis_output_dir.mkdir(exist_ok=True)
-
-# %% [code] 
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 # %%
 # Initialize list to store RLE masks - we'll match by image filename
@@ -476,11 +478,6 @@ def decode_rle_mask(rle_string):
 
 # %% [code]
 #| export
-import matplotlib.pyplot as plt
-import numpy as np
-from PIL import Image
-import cv2
-
 def visualize_segmentation(image_path, rle_string, mode='all', figsize=(15, 5)):
     """
     Visualize image with segmentation mask applied
@@ -494,6 +491,11 @@ def visualize_segmentation(image_path, rle_string, mode='all', figsize=(15, 5)):
     Returns:
         tuple: (original_image, decoded_mask, masked_image) as numpy arrays
     """
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from PIL import Image
+    import cv2
     
     # Load image
     if isinstance(image_path, str):
@@ -676,10 +678,6 @@ print(f"Total visualization subdirectories created: {len(list(vis_output_dir.ite
 
 # %% [markdown]
 # # Create New Kaggle Dataset
-
-# %% [code]
-import shutil
-from datetime import datetime
 
 # %%
 # Create dataset directory under data/
