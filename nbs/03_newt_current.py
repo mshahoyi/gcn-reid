@@ -43,6 +43,47 @@ class BarhillNewtsDataset(datasets.WildlifeDataset):
         return df.rename(columns={"newt_id": "identity", "image_id": "image_name", "image_path": "path"})
 
 # %%
+import cv2
+from gcn_reid.segmentation import decode_rle_mask
+
+#| export
+def get_cropped_newt(path, rle):
+    img = cv2.imread(path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    mask = decode_rle_mask(rle)
+    if mask is None: return Image.fromarray(img)
+    
+    img_array = np.array(img)
+    masked_img = img_array * mask[:, :, np.newaxis]
+    return Image.fromarray(masked_img)
+
+# %%
+from wildlife_tools.data import ImageDataset
+
+#| export
+class CroppingImageDataset(ImageDataset):
+    """Dataset that crops an image using an RLE segmentation mask."""
+    
+    def __init__(self, *image_dataset_args, crop_out=True, rle_col="segmentation_mask_rle", **image_dataset_kwargs):
+        super().__init__(*image_dataset_args, **image_dataset_kwargs)
+        self.crop_out = crop_out
+        self.rle_col = rle_col
+
+    def get_image(self, path):
+        img = cv2.imread(path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        if not self.crop_out: return Image.fromarray(img)
+        
+        relative_path = path.replace(self.root, "")[1:] # remove leading /
+        rle = self.metadata[self.metadata[self.col_path] == relative_path][self.rle_col].values
+        if len(rle) == 0: return Image.fromarray(img)
+        return get_cropped_newt(path, rle[0])
+
+
+
+# %%
 dataset_path = "data/newt_dataset"
 BarhillNewtsDataset._download(dataset_name="mshahoyi/barhill-newts-segmented", download_path=dataset_path)
 dataset = BarhillNewtsDataset(dataset_path)
@@ -55,14 +96,6 @@ dataset.plot_grid()
 from wildlife_datasets import analysis
 
 analysis.display_statistics(dataset.df)
-
-# %%
-from wildlife_datasets import metrics
-
-y_pred = ['GCN63-P6-S2']*len(dataset.df)
-y_true = dataset.df['identity']
-
-metrics.accuracy(y_pred, y_true)
 
 # %% [markdown]
 # # Create Query and Database Sets
@@ -101,8 +134,8 @@ extractor = DeepFeatures(timm.create_model(name, num_classes=0, pretrained=True)
 print("model loaded to device:", device)
 
 # %%
-query = extractor(ImageDataset(dataset_query.df, root=dataset_query.root, transform=dataset_query.transform))
-database = extractor(ImageDataset(dataset_database.df, root=dataset_database.root, transform=dataset_database.transform))
+query = extractor(CroppingImageDataset(dataset_query.df, root=dataset_query.root, transform=dataset_query.transform, crop_out=False))
+database = extractor(CroppingImageDataset(dataset_database.df, root=dataset_database.root, transform=dataset_database.transform, crop_out=False))
 
 # %%
 from wildlife_tools.similarity import CosineSimilarity
@@ -115,17 +148,13 @@ import numpy as np
 from wildlife_tools.inference import TopkClassifier, KnnClassifier
 
 top_5_classifier = TopkClassifier(k=5, database_labels=dataset_database.labels_string, return_all=True)
-knn_classifier = KnnClassifier(k=1, database_labels=dataset_database.labels_string, return_scores=True)
-
 predictions_top_5, scores_top_5, _ = top_5_classifier(similarity)
-predictions_knn, scores_knn = knn_classifier(similarity)
 
 #%%
 accuracy_top_1 = np.mean(dataset_query.labels_string == predictions_top_5[:, 0])
 accuracy_top_5 = np.mean(np.any(predictions_top_5 == dataset_query.labels_string[:, np.newaxis], axis=1))
-accuracy_knn = np.mean(dataset_query.labels_string == predictions_knn)
 
-accuracy_top_1, accuracy_knn, accuracy_top_5
+accuracy_top_1, accuracy_top_5
 
 # %%
 # Calculate mean Average Precision (mAP)
@@ -165,12 +194,10 @@ map_score = calculate_map(dataset_query.labels_string, dataset_database.labels_s
 print(f"Mean Average Precision (mAP): {map_score:.4f}")
 
 # %%
-dataset_query.get_image(10)
-# %%
 import matplotlib.pyplot as plt
 import numpy as np
 #| export
-def plot_retrieval_results(dataset_query, dataset_database, similarity_matrix, mode = "mistakes", num_results=4, num_queries=5, figsize=(15, 20)):
+def plot_retrieval_results(dataset_query, dataset_database, similarity_matrix, crop_out=False, mode = "mistakes", num_results=4, num_queries=5, figsize=(15, 20)):
     """
     Plot retrieval results showing query images and their most similar matches.
     
@@ -198,7 +225,12 @@ def plot_retrieval_results(dataset_query, dataset_database, similarity_matrix, m
 
     for row, query_idx in enumerate(query_indices[:num_queries]):
         query_label = dataset_query.labels_string[query_idx]
-        query_image = dataset_query.get_image(query_idx)
+        
+        get_image_path = lambda idx, ds: os.path.join(ds.root, ds.df.iloc[idx].path)
+        if crop_out:
+            query_image = get_cropped_newt(get_image_path(query_idx, dataset_query), dataset_query.df.iloc[query_idx].segmentation_mask_rle)
+        else:
+            query_image = dataset_query.get_image(query_idx)
         
         # Get top similar images for this query
         similarities = similarity_matrix[query_idx]
@@ -218,7 +250,10 @@ def plot_retrieval_results(dataset_query, dataset_database, similarity_matrix, m
         # Plot top similar images
         for col, db_idx in enumerate(top_indices):
             db_label = dataset_database.labels_string[db_idx]
-            db_image = dataset_database.get_image(db_idx)    
+            if crop_out:
+                db_image = get_cropped_newt(get_image_path(db_idx, dataset_database), dataset_database.df.iloc[db_idx].segmentation_mask_rle)
+            else:
+                db_image = dataset_database.get_image(db_idx)    
             similarity_score = similarities[db_idx]
             
             axes[row, col + 1].imshow(db_image)
@@ -262,14 +297,12 @@ miew_id_database = miew_id_extractor(ImageDataset(dataset_database.df, root=data
 # %%
 miew_id_similarity = similarity_function(miew_id_query, miew_id_database)
 miew_id_predictions_top_5, miew_id_scores_top_5, _ = top_5_classifier(miew_id_similarity)
-miew_id_predictions_knn, miew_id_scores_knn = knn_classifier(miew_id_similarity)
 
 #%%
 miew_id_accuracy_top_1 = np.mean(dataset_query.labels_string == miew_id_predictions_top_5[:, 0])
 miew_id_accuracy_top_5 = np.mean(np.any(miew_id_predictions_top_5 == dataset_query.labels_string[:, np.newaxis], axis=1))
-miew_id_accuracy_knn = np.mean(dataset_query.labels_string == miew_id_predictions_knn)
 
-miew_id_accuracy_top_1, miew_id_accuracy_knn, miew_id_accuracy_top_5
+miew_id_accuracy_top_1, miew_id_accuracy_top_5
 
 # %%
 miew_id_map_score = calculate_map(dataset_query.labels_string, dataset_database.labels_string, miew_id_similarity)
@@ -282,79 +315,67 @@ plot_retrieval_results(dataset_query, dataset_database, miew_id_similarity, mode
 # # Test on Cropped Newts
 
 # %%
-path = 'original_images/GCN63-P6-S2/IMG_2725.JPEG'
-dataset.df[dataset.df.path == path].segmentation_mask_rle
+
 # %%
-import cv2
-from gcn_reid.segmentation import decode_rle_mask
+cropped_mega_query = extractor(CroppingImageDataset(dataset_query.df, root=dataset_query.root, transform=dataset_query.transform))
+cropped_mega_database = extractor(CroppingImageDataset(dataset_database.df, root=dataset_database.root, transform=dataset_database.transform))
 
-class CroppingImageDataset(ImageDataset):
-    """Dataset that crops an image using an RLE segmentation mask."""
-    
-    def __init__(self, crop=True, **image_dataset_kwargs):
-        super().__init__(**image_dataset_kwargs)
-        self.crop = crop
+# %%
+cropped_mega_similarity = similarity_function(cropped_mega_query, cropped_mega_database)
+cropped_mega_predictions_top_5, cropped_mega_scores_top_5, _ = top_5_classifier(cropped_mega_similarity)
 
-    def get_image(self, path):
-        img = cv2.imread(path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = Image.fromarray(img)
-        relative_path = path.replace(self.root, "")
-        rle = self.df[self.df[self.col_path] == relative_path].segmentation_mask_rle.values[0]
-        decoded_mask = decode_rle_mask(rle, img.shape[:2])
-        return img
-    
-    def __call__(self, image, rle):
-        """
-        Args:
-            image: PIL Image or tensor
-            rle: RLE encoded segmentation mask
-        
-        Returns:
-            Cropped image containing only the segmented region
-        """
-        from gcn_reid.seg import decode_rle_mask
-        import numpy as np
-        from PIL import Image
-        
-        # Convert image to numpy if it's a PIL Image
-        if isinstance(image, Image.Image):
-            img_array = np.array(image)
-            is_pil = True
-        else:
-            img_array = image
-            is_pil = False
-        
-        # Decode the RLE mask
-        mask = decode_rle_mask(rle, img_array.shape[:2])
-        
-        # Find bounding box of the mask
-        rows = np.any(mask, axis=1)
-        cols = np.any(mask, axis=0)
-        
-        if not np.any(rows) or not np.any(cols):
-            # If mask is empty, return original image
-            return image
-        
-        rmin, rmax = np.where(rows)[0][[0, -1]]
-        cmin, cmax = np.where(cols)[0][[0, -1]]
-        
-        # Add padding
-        h, w = img_array.shape[:2]
-        rmin = max(0, rmin - self.padding)
-        rmax = min(h, rmax + self.padding + 1)
-        cmin = max(0, cmin - self.padding)
-        cmax = min(w, cmax + self.padding + 1)
-        
-        # Crop the image
-        cropped = img_array[rmin:rmax, cmin:cmax]
-        
-        # Convert back to PIL if input was PIL
-        if is_pil:
-            return Image.fromarray(cropped)
-        else:
-            return cropped
+#%%
+cropped_mega_accuracy_top_1 = np.mean(dataset_query.labels_string == cropped_mega_predictions_top_5[:, 0])
+cropped_mega_accuracy_top_5 = np.mean(np.any(cropped_mega_predictions_top_5 == dataset_query.labels_string[:, np.newaxis], axis=1))
 
+cropped_mega_accuracy_top_1, cropped_mega_accuracy_top_5
+
+# %% 
+cropped_mega_map_score = calculate_map(dataset_query.labels_string, dataset_database.labels_string, cropped_mega_similarity)
+cropped_mega_map_score
+
+# %%
+plot_retrieval_results(dataset_query, dataset_database, cropped_mega_similarity, crop_out=True, mode="mistakes", num_results=4, num_queries=5)
+
+# %% [markdown]
+# # Test Cropped out newts on MiewID  
+
+# %%
+miew_id_cropped_query = miew_id_extractor(CroppingImageDataset(dataset_query.df, root=dataset_query.root, transform=dataset_query.transform))
+miew_id_cropped_database = miew_id_extractor(CroppingImageDataset(dataset_database.df, root=dataset_database.root, transform=dataset_database.transform))
+
+# %%
+miew_id_cropped_similarity = similarity_function(miew_id_cropped_query, miew_id_cropped_database)
+miew_id_cropped_predictions_top_5, miew_id_cropped_scores_top_5, _ = top_5_classifier(miew_id_cropped_similarity)
+
+# %%
+miew_id_cropped_accuracy_top_1 = np.mean(dataset_query.labels_string == miew_id_cropped_predictions_top_5[:, 0])
+miew_id_cropped_accuracy_top_5 = np.mean(np.any(miew_id_cropped_predictions_top_5 == dataset_query.labels_string[:, np.newaxis], axis=1))
+
+miew_id_cropped_accuracy_top_1, miew_id_cropped_accuracy_top_5
+
+# %%
+miew_id_cropped_map_score = calculate_map(dataset_query.labels_string, dataset_database.labels_string, miew_id_cropped_similarity)
+miew_id_cropped_map_score
+
+# %%
+plot_retrieval_results(dataset_query, dataset_database, miew_id_cropped_similarity, crop_out=True, mode="mistakes", num_results=4, num_queries=5)
+
+# %% [markdown]
+# # Create a dataframe of the results
+
+# %%
+results = pd.DataFrame({
+    "model": ["MegaDescriptor-L-384", "MiewID", "MegaDescriptor-L-384 (cropped)", "MiewID (cropped)"],
+    "accuracy_top_5": [accuracy_top_5, miew_id_accuracy_top_5, cropped_mega_accuracy_top_5, miew_id_cropped_accuracy_top_5],
+    "accuracy_top_1": [accuracy_top_1, miew_id_accuracy_top_1, cropped_mega_accuracy_top_1, miew_id_cropped_accuracy_top_1],
+    "map_score": [map_score, miew_id_map_score, cropped_mega_map_score, miew_id_cropped_map_score]
+})
+
+results
+
+# %%
+results.set_index("model").transpose().plot.bar(figsize=(10, 5), rot=0)
 
 # %%
 import nbdev

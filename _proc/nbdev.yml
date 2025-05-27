@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "gcn-reid"
+  site-url: "https://mshahoyi.github.io/gcn-reid"
+  description: "Re-identifying individual animals (esp. great crested newts) using Swin Transformers"
+  repo-branch: main
+  repo-url: "https://github.com/mshahoyi/gcn-reid"
