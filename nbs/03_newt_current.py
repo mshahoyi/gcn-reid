@@ -269,6 +269,7 @@ plot_retrieval_results(dataset_query, dataset_database, similarity, num_results=
 # # Test MiewID
 
 # %%
+#| hide_output: true
 miew_id_model = AutoModel.from_pretrained("conservationxlabs/miewid-msv2", trust_remote_code=True)
 
 miew_id_extractor = DeepFeatures(miew_id_model, 
