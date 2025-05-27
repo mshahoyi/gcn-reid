@@ -28,16 +28,12 @@ except:
     os.system('pip install -q supervision')
 
 # %% [code] 
-#| export 
+#|eval: false
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import pycocotools.mask as mask_util
 from PIL import Image
-
- 
-# %% [code] 
-#|eval: false
 import argparse
 import os
 import cv2
