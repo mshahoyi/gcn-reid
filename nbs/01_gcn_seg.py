@@ -11,11 +11,13 @@
 #|default_exp segmentation
 
 # %% [code] 
+#| eval: false
 import os
 if not os.path.exists("./data/barhill"):
     os.system("kaggle datasets download -d mshahoyi/barhills-processed --unzip -p ./data")
 
 # %% [code] 
+#| eval: false
 try:
     import supervision
     os.chdir("gsam2")
