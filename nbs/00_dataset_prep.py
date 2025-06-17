@@ -65,6 +65,31 @@ metadata['file_name'] = metadata['file_path'].apply(lambda x: os.path.basename(x
 metadata['is_video'] = metadata['file_name'].apply(lambda x: 'mov' in x.lower())
 metadata.head()
 
+# %% [markdown]
+# # Merging and deleting images
+
+# %%
+gcns_to_merge = [
+    ("GCN10-P7-S8", "GCN11-P7-S8", "GCN13-P7-S8"),
+    ("GCN53-P2-S4", "GCN52-P2-S4"),
+]
+
+files_to_delete = [
+    ("GCN54-P2-S2", "IMG_2665.JPEG"),
+]
+
+# %%
+print(f"Number of identities before merging: {metadata.identity.nunique()}")
+for merge_group in gcns_to_merge:
+    metadata.loc[metadata.identity.isin(merge_group[1:]), 'identity'] = merge_group[0]
+print(f"Number of identities after merging: {metadata.identity.nunique()}")
+
+# %%
+print(f"Number of files before deleting: {metadata.file_name.nunique()}")
+for gcn_id, file_name in files_to_delete:
+    metadata = metadata[~((metadata.identity == gcn_id) & (metadata.file_name == file_name))]
+print(f"Number of files after deleting: {metadata.file_name.nunique()}")
+
 # %%
 class UnprocessedNewtsDataset(datasets.WildlifeDataset):
     def create_catalogue(self) -> pd.DataFrame:
@@ -102,6 +127,7 @@ train_dir = output_dir/"train"
 val_dir = output_dir/"val"
 test_dir = output_dir/"test"
 
+shutil.rmtree(output_dir, ignore_errors=True)
 Path(output_dir).mkdir(exist_ok=True)
 Path(train_dir).mkdir(exist_ok=True)
 Path(val_dir).mkdir(exist_ok=True)
@@ -133,6 +159,9 @@ for i, row in tqdm(metadata_new.iterrows()):
     metadata_new.loc[i, 'file_path'] = new_path
 
 metadata_new.head()
+
+# %% [markdown]
+# # Display Statistics
 
 # %%
 metadata_new.split.value_counts()

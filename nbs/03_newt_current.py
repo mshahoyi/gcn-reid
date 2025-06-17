@@ -14,9 +14,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from wildlife_tools.similarity import CosineSimilarity
-from wildlife_datasets import analysis
+from wildlife_datasets import analysis, datasets, splits
 import pycocotools.mask as mask_util
-from wildlife_datasets import datasets, splits
 from wildlife_tools.data import ImageDataset
 from sklearn.metrics import average_precision_score
 import numpy as np
@@ -31,7 +30,6 @@ from PIL import Image
 import kaggle
 import pandas as pd
 from wildlife_tools.data import ImageDataset
-from wildlife_datasets import datasets
 
 # %% [markdown]
 # # Create Dataset Class

@@ -19,7 +19,7 @@ def download_kaggle_dataset(dataset_name, download_path):
 
     return download_path
 
-# %% ../nbs/00_dataset_prep.ipynb 30
+# %% ../nbs/00_dataset_prep.ipynb 35
 def upload_to_kaggle(user_id, title, id, licenses, keywords, dataset_dir):
     import json
     import subprocess
