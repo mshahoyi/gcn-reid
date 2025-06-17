@@ -13,8 +13,8 @@
 # %% [code] 
 #| eval: false
 import os
-if not os.path.exists("./data/barhill"):
-    os.system("kaggle datasets download -d mshahoyi/barhills-processed --unzip -p ./data")
+if not os.path.exists("./data/barhill-newts-all"):
+    os.system("kaggle datasets download -d mshahoyi/barhill-newts-all --unzip -p ./data/barhill-newts-all")
 
 # %% [code] 
 #| eval: false
@@ -104,12 +104,13 @@ grounding_model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).
 os.chdir("..")
 
 # %% [code] 
-
-image = pathlib.Path("./data/barhill/GCNs/GCN10-P1-S2/IMG_2367.JPEG")
+ds_dir = pathlib.Path("./data/barhill-newts-all")
+df = pd.read_csv(ds_dir / "metadata.csv")
+image = ds_dir / df.iloc[130].file_path
 
 # setup the input image and text prompt for SAM 2 and Grounding DINO
 # VERY important: text queries need to be lowercased + end with a dot
-text = "the lizard."
+text = "newt amphibian reptile."
 img_path = image
 text, img_path
 
@@ -247,20 +248,12 @@ plt.show()
 # # Segment the DS
 
 # %% [code] 
-ds_dir = pathlib.Path("./data/barhill")
-
-# %% [code] 
-gcns_dir = ds_dir/'GCNs'
-
-# %% [code] 
-# Load the metadata CSV
-metadata_path = "./data/barhill/gallery_and_probes.csv"
-metadata_df = pd.read_csv(metadata_path)
-print(f"Loaded metadata with {len(metadata_df)} rows")
-
 # Create output directory for visualization images - as sibling to data folder
 vis_output_dir = pathlib.Path("./data/segmentation_visualizations")
 vis_output_dir.mkdir(exist_ok=True)
+
+# %%
+df[~df.is_video].head(10)
 
 # %%
 # Initialize list to store RLE masks - we'll match by image filename
@@ -268,120 +261,122 @@ rle_masks = {}
 visualization_samples = []  # Store some samples to display later
 
 # Create directories for each newt ID in the visualization directory
-for newt_id in tqdm(os.listdir(gcns_dir)):  # Process first 3 newts for demo
+for i, row in tqdm(df[~df.is_video].iterrows()):  # Process first 3 newts for demo
+    newt_id = row.identity
     newt_vis_dir = vis_output_dir / newt_id
     newt_vis_dir.mkdir(exist_ok=True)
-    
-    image_names = os.listdir(os.path.join(gcns_dir, newt_id))
-    image_paths = [os.path.join(gcns_dir, newt_id, image) for image in image_names]
-    
-    # Process images one by one to avoid memory issues
-    for image_path, image_name in zip(image_paths[:5], image_names[:5]):  # Limit to 5 per newt for demo
-        try:
-            # Create a key to match with CSV (assuming CSV has full path or we can construct it)
-            image_key = f"{newt_id}/{image_name}"
-            
-            # Load image
-            image = cv2.imread(image_path)
-            if image is None:
-                print(f"Could not read image {image_path}, skipping")
-                rle_masks[image_key] = None
-                continue
-                
-            # Convert to PIL for grounding model
-            pil_image = Image.open(image_path)
-            
-            # Process single image with grounding model
-            inputs = processor(images=pil_image, text=text, return_tensors="pt").to(DEVICE)
-            
-            with torch.no_grad(): 
-                outputs = grounding_model(**inputs)
 
-            results = processor.post_process_grounded_object_detection(
-                outputs,
-                inputs.input_ids,
-                box_threshold=0.4,
-                text_threshold=0.3,
-                target_sizes=[(image.shape[0], image.shape[1])]
-            )[0]  # Get first (and only) result
-            
-            # Skip if no detections
-            if len(results["boxes"]) == 0:
-                print(f"No detections for {image_path}, skipping")
-                rle_masks[image_key] = None
-                continue
-                
-            # Get the highest confidence box
-            confidence_scores = results["scores"]
-            best_box_idx = torch.argmax(confidence_scores)
-            box = results["boxes"][best_box_idx].cpu().numpy()
-            
-            # Convert box to SAM format
-            sam_box = box.astype(int)
-            
-            # Generate mask with SAM
-            sam2_predictor.set_image(np.array(pil_image.convert("RGB")))
-            masks, _, _ = sam2_predictor.predict(
-                box=sam_box,
-                multimask_output=False
-            )
-            
-            # Get the mask and convert to RLE
-            mask = masks[0]  # Get the first (and only) mask
-            
-            # Convert mask to RLE format using pycocotools
-            # Ensure mask is in the right format (uint8, Fortran order)
-            mask_uint8 = mask.astype(np.uint8, order='F')
-            rle = mask_util.encode(mask_uint8)
-            # Convert bytes to string for CSV storage
-            rle_string = rle['counts'].decode('utf-8') if isinstance(rle['counts'], bytes) else str(rle['counts'])
-            rle_masks[image_key] = f"{rle['size'][0]}x{rle['size'][1]}:{rle_string}"
-            
-            # Create visualization image (similar to the code above the for loop)
-            img_bgr = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-            
-            # Create supervision detections object
-            input_boxes = np.array([box])
-            detections = sv.Detections(
-                xyxy=input_boxes,  # (n, 4)
-                mask=mask[np.newaxis, ...].astype(bool),  # (n, h, w)
-                class_id=np.array([0])
-            )
-            
-            # Create labels
-            confidence = float(confidence_scores[best_box_idx])
-            labels = [f"lizard {confidence:.2f}"]
-            
-            # Annotate image
-            box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP))
-            annotated_frame = box_annotator.annotate(scene=img_bgr.copy(), detections=detections)
-            
-            label_annotator = sv.LabelAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP), text_color=sv.Color.BLACK)
-            annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
-            
-            mask_annotator = sv.MaskAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP))
-            annotated_frame = mask_annotator.annotate(scene=annotated_frame, detections=detections)
-            
-            # Save visualization image
-            vis_output_path = newt_vis_dir / f"{image_name}_segmented.jpg"
-            cv2.imwrite(str(vis_output_path), annotated_frame)
-            
-            # Store sample for display (limit to first few)
-            if len(visualization_samples) < 6:
-                visualization_samples.append({
-                    'original': np.array(pil_image),
-                    'annotated': cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB),
-                    'newt_id': newt_id,
-                    'filename': image_name,
-                    'confidence': confidence
-                })
-            
-            print(f"Processed {image_path} -> RLE mask saved, visualization at {vis_output_path}")
-            
-        except Exception as e:
-            print(f"Error processing {image_path}: {str(e)}")
+    if i > 30:
+        break
+    
+    try:
+        image_path = ds_dir / row.file_path
+        image_name = row.file_name
+        
+        # Create a key to match with CSV (assuming CSV has full path or we can construct it)
+        image_key = f"{newt_id}/{image_name}"
+        
+        # Load image
+        image = cv2.imread(image_path)
+        if image is None:
+            print(f"Could not read image {image_path}, skipping")
             rle_masks[image_key] = None
             continue
+            
+        # Convert to PIL for grounding model
+        pil_image = Image.open(image_path)
+        
+        # Process single image with grounding model
+        inputs = processor(images=pil_image, text=text, return_tensors="pt").to(DEVICE)
+        
+        with torch.no_grad(): 
+            outputs = grounding_model(**inputs)
+
+        results = processor.post_process_grounded_object_detection(
+            outputs,
+            inputs.input_ids,
+            box_threshold=0.4,
+            text_threshold=0.3,
+            target_sizes=[(image.shape[0], image.shape[1])]
+        )[0]  # Get first (and only) result
+        
+        # Skip if no detections
+        if len(results["boxes"]) == 0:
+            print(f"No detections for {image_path}, skipping")
+            rle_masks[image_key] = None
+            continue
+            
+        # Get the highest confidence box
+        confidence_scores = results["scores"]
+        best_box_idx = torch.argmax(confidence_scores)
+        box = results["boxes"][best_box_idx].cpu().numpy()
+        
+        # Convert box to SAM format
+        sam_box = box.astype(int)
+        
+        # Generate mask with SAM
+        sam2_predictor.set_image(np.array(pil_image.convert("RGB")))
+        masks, _, _ = sam2_predictor.predict(
+            box=sam_box,
+            multimask_output=False
+        )
+        
+        # Get the mask and convert to RLE
+        mask = masks[0]  # Get the first (and only) mask
+        
+        # Convert mask to RLE format using pycocotools
+        # Ensure mask is in the right format (uint8, Fortran order)
+        mask_uint8 = mask.astype(np.uint8, order='F')
+        rle = mask_util.encode(mask_uint8)
+        # Convert bytes to string for CSV storage
+        rle_string = rle['counts'].decode('utf-8') if isinstance(rle['counts'], bytes) else str(rle['counts'])
+        rle_masks[image_key] = f"{rle['size'][0]}x{rle['size'][1]}:{rle_string}"
+        
+        # Create visualization image (similar to the code above the for loop)
+        img_bgr = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+        
+        # Create supervision detections object
+        input_boxes = np.array([box])
+        detections = sv.Detections(
+            xyxy=input_boxes,  # (n, 4)
+            mask=mask[np.newaxis, ...].astype(bool),  # (n, h, w)
+            class_id=np.array([0])
+        )
+        
+        # Create labels
+        confidence = float(confidence_scores[best_box_idx])
+        labels = [f"lizard {confidence:.2f}"]
+        
+        # Annotate image
+        box_annotator = sv.BoxAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP))
+        annotated_frame = box_annotator.annotate(scene=img_bgr.copy(), detections=detections)
+        
+        label_annotator = sv.LabelAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP), text_color=sv.Color.BLACK)
+        annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
+        
+        mask_annotator = sv.MaskAnnotator(color=sv.ColorPalette.from_hex(CUSTOM_COLOR_MAP))
+        annotated_frame = mask_annotator.annotate(scene=annotated_frame, detections=detections)
+        
+        # Save visualization image
+        vis_output_path = newt_vis_dir / f"{image_name}_segmented.jpg"
+        cv2.imwrite(str(vis_output_path), annotated_frame)
+        
+        # Store sample for display (limit to first few)
+        if len(visualization_samples) < 6:
+            visualization_samples.append({
+                'original': np.array(pil_image),
+                'annotated': cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB),
+                'newt_id': newt_id,
+                'filename': image_name,
+                'confidence': confidence
+            })
+        
+        print(f"Processed {image_path} -> RLE mask saved, visualization at {vis_output_path}")
+        
+    except Exception as e:
+        print(f"Error processing {image_path}: {str(e)}")
+        rle_masks[image_key] = None
+        continue
 
 print(f"\nVisualization images saved to: {vis_output_dir.absolute()}")
 
@@ -907,7 +902,7 @@ mask = decode_rle_mask(df['segmentation_mask_rle'].iloc[0])
 ## Generation Details
 
 - **Model**: Grounded-SAM-2 (IDEA-Research/grounding-dino-tiny + SAM2.1)
-- **Text prompt**: "the lizard."
+- **Text prompt**: "great crested newt with warty skin and orange belly."
 - **Detection threshold**: 0.4 box threshold, 0.3 text threshold
 - **Segmentation**: SAM2 with highest confidence detection box as prompt
 
