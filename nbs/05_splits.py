@@ -33,6 +33,7 @@ from wildlife_tools.data import ImageDataset
 from gcn_reid.segmentation import decode_rle_mask
 from pathlib import Path
 from gcn_reid.newt_dataset import download_kaggle_dataset
+from tqdm import tqdm
 
 # %%
 dataset_name = 'mshahoyi/barhill-newts-all'
@@ -96,27 +97,36 @@ artifacts_name = 'metadata_with_features.csv'
 if not (artifacts_path/artifacts_name).exists():
     mega_results = mega_extractor(mega_dataset)
     miewid_results = miewid_extractor(miewid_dataset)
-
-# %%
-df['mega_features'] = [features.tolist() for features in mega_results.features]
-df['miewid_features'] = [features.tolist() for features in miewid_results.features]
-
-# %%
-df.head()
-
-# %%
-df.to_csv(artifacts_path/artifacts_name, index=False)
-
-# %%
+    df['mega_features'] = [features.tolist() for features in mega_results.features]
+    df['miewid_features'] = [features.tolist() for features in miewid_results.features]
+    df.to_csv(artifacts_path/artifacts_name, index=False)
+else: df = pd.read_csv(artifacts_path/artifacts_name)
 
 # %% [markdown]
 # ## Get all cosine similarities and save the highest correct match and the highest incorrect match scores and indices
 # We will have 8 new columns: mega_highest_correct_score, mega_highest_correct_idx, mega_highest_incorrect_score, mega_highest_incorrect_idx, miewid_highest_correct_score, miewid_highest_correct_idx, miewid_highest_incorrect_score, miewid_highest_incorrect_idx
+# Convert string representation of features back to arrays
 
 # %%
-similarity_function = CosineSimilarity()
-mega_similarities = similarity_function(mega_results, mega_results)
-miewid_similarities = similarity_function(miewid_results, miewid_results)
+df['mega_features'] = df['mega_features'].apply(eval)
+df['miewid_features'] = df['miewid_features'].apply(eval)
+
+# %%
+mega_features = np.array(df['mega_features'].tolist())
+miewid_features = np.array(df['miewid_features'].tolist())
+
+# Calculate cosine similarities manually
+def cosine_similarity(a, b):
+    # Normalize the vectors
+    a_norm = a / np.linalg.norm(a, axis=1)[:, np.newaxis]
+    b_norm = b / np.linalg.norm(b, axis=1)[:, np.newaxis]
+    # Calculate similarity matrix
+    return np.dot(a_norm, b_norm.T)
+
+mega_similarities = cosine_similarity(mega_features, mega_features)
+miewid_similarities = cosine_similarity(miewid_features, miewid_features)
+
+mega_similarities.shape, miewid_similarities.shape
 
 # %%
 other_indices = np.arange(len(df))
@@ -239,19 +249,53 @@ df['mega_rightness_score'] = df['mega_highest_correct_score'] - df['mega_highest
 df['miewid_rightness_score'] = df['miewid_highest_correct_score'] - df['miewid_highest_incorrect_score']
 df['rightness_score'] = df['mega_rightness_score'] + df['miewid_rightness_score']
 
-plt.figure(figsize=(15, 5))
-plt.subplot(1, 3, 1)
-df.mega_rightness_score.hist(bins=50)
-plt.title('Mega Rightness Score')
-plt.subplot(1, 3, 2)
-df.miewid_rightness_score.hist(bins=50)
-plt.title('Miewid Rightness Score')
-plt.subplot(1, 3, 3)
-df.rightness_score.hist(bins=50)
-plt.title('Rightness Score')
-plt.savefig(artifacts_path/'rightness_scores.png')
+# %%
+# plt.figure(figsize=(15, 5))
+# plt.subplot(1, 3, 1)
+# df.mega_rightness_score.hist(bins=50)
+# plt.title('Mega Rightness Score')
+# plt.subplot(1, 3, 2)
+# df.miewid_rightness_score.hist(bins=50)
+# plt.title('Miewid Rightness Score')
+# plt.subplot(1, 3, 3)
+# df.rightness_score.hist(bins=50)
+# plt.title('Rightness Score')
+# plt.savefig(artifacts_path/'rightness_scores.png')
 
 # %%
+# Plot the 5 least correct images with their matches
+num_images = 50
+
+sorted_df = df.sort_values(by=['rightness_score'], ascending=True).reset_index(drop=True)
+for i, row in tqdm(sorted_df[:num_images].iterrows(), total=num_images):
+    fig, axes = plt.subplots(1, 5, figsize=(15, 5))
+
+    # Plot query image
+    query_path = dataset_path / row['path']
+    axes[0].imshow(plt.imread(query_path))
+    axes[0].set_title(f'Query\nID: {row["identity"]} - {row.file_name}')
+    axes[0].axis('off')
+
+    # Define matches to plot
+    matches = [
+        {'type': 'Mega Correct', 'score_col': 'mega_highest_correct_score', 'idx_col': 'mega_highest_correct_idx', 'ax_idx': 1},
+        {'type': 'Mega Incorrect', 'score_col': 'mega_highest_incorrect_score', 'idx_col': 'mega_highest_incorrect_idx', 'ax_idx': 2},
+        {'type': 'Miewid Correct', 'score_col': 'miewid_highest_correct_score', 'idx_col': 'miewid_highest_correct_idx', 'ax_idx': 3},
+        {'type': 'Miewid Incorrect', 'score_col': 'miewid_highest_incorrect_score', 'idx_col': 'miewid_highest_incorrect_idx', 'ax_idx': 4},
+    ]
+
+    # Plot each match
+    for match in matches:
+        match_row = df.iloc[int(row[match['idx_col']])]
+        match_path = dataset_path / match_row['path']
+        ax = axes[match['ax_idx']]
+        ax.imshow(plt.imread(match_path))
+        ax.set_title(f'{match["type"]}\nScore: {row[match["score_col"]]:.3f}\n{match_row.identity}-{match_row.file_name}')
+        ax.axis('off')
+
+    fig.tight_layout()
+    fig.savefig(artifacts_path/f'least_correct_matches_idx_{i}.png')
+    plt.close(fig)
 
 
 # %% [markdown]
