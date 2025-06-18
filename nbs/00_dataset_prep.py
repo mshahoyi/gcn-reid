@@ -81,6 +81,19 @@ gcns_to_merge = [
 
 files_to_delete = [
     ("GCN54-P2-S2", "IMG_2665.JPEG"),
+    ("GCN8-P3-S6", "IMG_3623.JPEG"),
+    ("GCN1-P4-S4", "IMG_2895.JPEG"),
+    ("GCN54-P2-S4", "IMG_3239.JPEG"),
+    ("GCN50-P2-S4", "IMG_3213.JPEG"),
+    
+    # These should be transferred
+    # ("GCN13-P7-S8", "IMG_3859.JPEG"),
+    # ("GCN13-P7-S8", "IMG_3859.MOV"),
+    # ("GCN13-P7-S8", "IMG_3860.JPEG"),
+]
+
+file_identities_to_change = [ # tuple of (new identity, file name)
+    ()
 ]
 
 # %%

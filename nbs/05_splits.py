@@ -237,9 +237,6 @@ for i, row in df.iterrows():
     df.at[i, 'miewid_highest_incorrect_score'] = miewid_highest_incorrect_score
     df.at[i, 'miewid_highest_incorrect_idx'] = miewid_highest_incorrect_idx
 
-# %%
-df.to_csv(artifacts_path/artifacts_name, index=False)
-df
 
 # %% [markdown]
 # ## Calculate the rightness score for each image and model.
@@ -248,6 +245,10 @@ df
 df['mega_rightness_score'] = df['mega_highest_correct_score'] - df['mega_highest_incorrect_score']
 df['miewid_rightness_score'] = df['miewid_highest_correct_score'] - df['miewid_highest_incorrect_score']
 df['rightness_score'] = df['mega_rightness_score'] + df['miewid_rightness_score']
+
+# %%
+df.to_csv(artifacts_path/artifacts_name, index=False)
+df
 
 # %%
 # plt.figure(figsize=(15, 5))
@@ -264,10 +265,11 @@ df['rightness_score'] = df['mega_rightness_score'] + df['miewid_rightness_score'
 
 # %%
 # Plot the 5 least correct images with their matches
-num_images = 50
+num_images = 1
 
 sorted_df = df.sort_values(by=['rightness_score'], ascending=True).reset_index(drop=True)
-for i, row in tqdm(sorted_df[:num_images].iterrows(), total=num_images):
+for i, row in tqdm(sorted_df[20:num_images].iterrows(), total=num_images):
+    break
     fig, axes = plt.subplots(1, 5, figsize=(15, 5))
 
     # Plot query image
@@ -301,12 +303,63 @@ for i, row in tqdm(sorted_df[:num_images].iterrows(), total=num_images):
 # %% [markdown]
 # ## Sort images by rightness score in an ascending order
 
-# %%
-df = df.sort_values(by=['miewid_rightness_score'], ascending=True)
-
 # %% [markdown]
 # ## Mark query and database images
 # Starting with the least right images, mark the query and database images. Skip images that are already marked (this means they are the database for another image).
+
+# %%
+def mark_query_and_database(df):
+    df['is_query'] = pd.NA
+
+    for i, row in df.sort_values(by=['rightness_score'], ascending=True).iterrows():
+        mega_incorrect_idx = row['mega_highest_incorrect_idx']
+        miewid_incorrect_idx = row['miewid_highest_incorrect_idx']
+        if pd.notna(df.at[i, 'is_query']) or (pd.notna(df.at[mega_incorrect_idx, 'is_query']) or pd.notna(df.at[miewid_incorrect_idx, 'is_query'])) or (df[df['identity'] == row['identity']]['is_query'] == True).any():
+            continue
+
+        # All the other images of the same newt become the database
+        df.loc[df['identity'] == row['identity'], 'is_query'] = False
+
+        # Mark the image itself as query
+        df.at[i, 'is_query'] = True
+
+        # Mark the incorrect matches as database
+        df.at[int(mega_incorrect_idx), 'is_query'] = False
+        df.at[int(miewid_incorrect_idx), 'is_query'] = False
+
+    return df
+
+# %%
+def test_mark_query_and_database():
+    data = {
+        'identity':                   ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D'],
+        'rightness_score':            [0.1, 0.8, 0.2, 0.7, 0.3, 0.6, 0.4, 0.5],
+        'mega_highest_incorrect_idx': [2.0, 3.0, 0.0, 1.0, 6.0, 7.0, 4.0, 5.0],
+        'miewid_highest_incorrect_idx':[3.0, 2.0, 1.0, 0.0, 7.0, 6.0, 5.0, 4.0]
+    }
+    test_df = pd.DataFrame(data)
+    
+    processed_df = mark_query_and_database(test_df.copy())
+    
+    expected_is_query_list = [True, False, False, False, True, False, False, False]
+    expected_is_query = pd.Series(expected_is_query_list, name='is_query')
+    
+    unassigned_mask = processed_df['is_query'].isna()
+    assert not unassigned_mask.any(), f"Found unassigned queries: \n{processed_df[unassigned_mask]}"
+
+    pd.testing.assert_series_equal(
+        processed_df['is_query'].astype(bool), 
+        expected_is_query,
+        check_names=False,
+        check_dtype=False
+    )
+    print("test_mark_query_and_database passed!")
+
+test_mark_query_and_database()
+
+# %%
+df = mark_query_and_database(df)
+df.is_query.value_counts()
 
 # %% [markdown]
 # ## Create splits
