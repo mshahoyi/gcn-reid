@@ -5,7 +5,7 @@
 # %% auto 0
 __all__ = ['decode_rle_mask', 'visualize_segmentation', 'visualize_segmentation_from_metadata']
 
-# %% ../nbs/01_gcn_seg.ipynb 29
+# %% ../nbs/01_gcn_seg.ipynb 28
 def decode_rle_mask(rle_string):
     """Decode RLE string back to binary mask"""
     import pandas as pd
@@ -39,7 +39,7 @@ def decode_rle_mask(rle_string):
         print(f"RLE string preview: {rle_string[:100]}...")
         return None
 
-# %% ../nbs/01_gcn_seg.ipynb 30
+# %% ../nbs/01_gcn_seg.ipynb 29
 def visualize_segmentation(image_path, rle_string, mode='all', figsize=(15, 5)):
     """
     Visualize image with segmentation mask applied
@@ -150,7 +150,7 @@ def visualize_segmentation(image_path, rle_string, mode='all', figsize=(15, 5)):
     
     return image, mask, masked_image
 
-# %% ../nbs/01_gcn_seg.ipynb 31
+# %% ../nbs/01_gcn_seg.ipynb 30
 def visualize_segmentation_from_metadata(metadata_df, idx, base_path="", mode='all', figsize=(15, 5)):
     """
     Visualize segmentation for a specific row in metadata DataFrame

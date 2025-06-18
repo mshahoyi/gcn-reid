@@ -30,6 +30,7 @@ from PIL import Image
 import kaggle
 import pandas as pd
 from wildlife_tools.data import ImageDataset
+from gcn_reid.segmentation import decode_rle_mask
 
 # %% [markdown]
 # # Create Dataset Class

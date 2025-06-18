@@ -9,13 +9,18 @@
 #| eval: false
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
-import ramda as R
 import os
 import shutil
 from pathlib import Path
 from wildlife_datasets import datasets, analysis, splits
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+
+# %%
+# Set pandas display options to show all columns and wide output
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
+pd.set_option('display.max_colwidth', None)
 
 #%%
 #| export
@@ -41,11 +46,11 @@ walk = list(os.walk(data_root))
 walk[:4]
 
 # %%
-gcns = R.filter(lambda x: 'gcn' in os.path.basename(x[0]).lower(), walk) #
+gcns = [x for x in walk if 'gcn' in os.path.basename(x[0]).lower()]
 gcns[:2]
 
 # %%
-data = [(os.path.basename(root), R.map(lambda f: os.path.join(root, f), files)) for root, _, files in gcns]
+data = [(os.path.basename(root), list(map(lambda f: os.path.join(root, f), files))) for root, _, files in gcns]
 
 dict(data[:2])
 
@@ -70,7 +75,7 @@ metadata.head()
 
 # %%
 gcns_to_merge = [
-    ("GCN10-P7-S8", "GCN11-P7-S8", "GCN13-P7-S8"),
+    # ("GCN10-P7-S8", "GCN11-P7-S8", "GCN13-P7-S8"), These are not the same newts. There is probably image level contamination.
     ("GCN53-P2-S4", "GCN52-P2-S4"),
 ]
 
@@ -91,6 +96,14 @@ for gcn_id, file_name in files_to_delete:
 print(f"Number of files after deleting: {metadata.file_name.nunique()}")
 
 # %%
+metadata.head()
+
+# %%
+output_dir = Path("./data/gcns-processed")
+shutil.rmtree(output_dir, ignore_errors=True)
+Path(output_dir).mkdir(exist_ok=True)
+
+# %%
 class UnprocessedNewtsDataset(datasets.WildlifeDataset):
     def create_catalogue(self) -> pd.DataFrame:
         return metadata[~metadata.is_video].rename(columns={"file_name": "image_name", "file_path": "path"})
@@ -98,6 +111,7 @@ class UnprocessedNewtsDataset(datasets.WildlifeDataset):
 # %%
 dataset = UnprocessedNewtsDataset('.')
 dataset.plot_grid()
+plt.savefig(output_dir/'distribution.png')
 
 # %% [markdown]
 # # Split the dataset
@@ -105,102 +119,19 @@ dataset.plot_grid()
 # %%
 analysis.display_statistics(dataset.df)
 
-# %%
-def create_train_test_split(df, split_ratio=0.5):
-    disjoint_splitter = splits.DisjointSetSplit(split_ratio)
-    for idx_train, idx_test in disjoint_splitter.split(df):
-        df_train, df_test = df.loc[idx_train], df.loc[idx_test]
-        splits.analyze_split(df, idx_train, idx_test)
-    return df_train.reset_index(drop=True), df_test.reset_index(drop=True)
-
-df_train, df_test = create_train_test_split(dataset.df, split_ratio=0.5)
-df_test, df_val = create_train_test_split(df_test, split_ratio=0.5)
-
-print(f"Train: {len(df_train)}, Test: {len(df_test)}, Validation: {len(df_val)}")
 
 # %%
-df_train.head()
-
-# %%
-output_dir = Path("./data/gcns-processed")
-train_dir = output_dir/"train"
-val_dir = output_dir/"val"
-test_dir = output_dir/"test"
-
-shutil.rmtree(output_dir, ignore_errors=True)
-Path(output_dir).mkdir(exist_ok=True)
-Path(train_dir).mkdir(exist_ok=True)
-Path(val_dir).mkdir(exist_ok=True)
-Path(test_dir).mkdir(exist_ok=True)
-
-# %%
-train_ids = df_train.identity.unique()
-val_ids = df_val.identity.unique()
-test_ids = df_test.identity.unique()
-
-# %%
-metadata_new = metadata.copy()
+metadata_new = metadata.copy().reset_index(drop=True)
 
 for i, row in tqdm(metadata_new.iterrows()):
-    if row.identity in train_ids:
-        split = 'train'
-    elif row.identity in val_ids:
-        split = 'val'
-    elif row.identity in test_ids:
-        split = 'test'
-    else:
-        raise ValueError(f"Unknown identity: {row.identity}")
-    
-    new_path = Path(split)/row.identity/row.file_name
+    new_path = Path('newts')/row.identity/row.file_name
     Path(output_dir/new_path).parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(row.file_path, output_dir/new_path)
-
-    metadata_new.loc[i, 'split'] = split
     metadata_new.loc[i, 'file_path'] = new_path
 
-metadata_new.head()
-
-# %% [markdown]
-# # Display Statistics
-
 # %%
-metadata_new.split.value_counts()
-
-# %%
-metadata_new.to_csv("./data/gcns-processed/metadata.csv", index=False)
-
-# %%
-print("Number of identities in each split:")
-metadata_new.groupby('split').identity.nunique()
-
-# %%
-print("Number of files in each split (including videos):")
-metadata_new.groupby('split').file_name.nunique()
-
-# %%
-print("Number of images and videos:")
-metadata_new.is_video.value_counts()
-
-# %%
-analysis.display_statistics(metadata_new[metadata_new.split == 'train'])
-plt.title('Train set statistics')
-plt.savefig('./data/gcns-processed/train_statistics.png')
-plt.show()
-plt.close()
-
-# %%
-analysis.display_statistics(metadata_new[metadata_new.split == 'val'])
-plt.title('Validation set statistics')
-plt.savefig('./data/gcns-processed/val_statistics.png')
-plt.show()
-plt.close()
-
-# %%
-analysis.display_statistics(metadata_new[metadata_new.split == 'test'])
-plt.title('Test set statistics')
-plt.savefig('./data/gcns-processed/test_statistics.png')
-plt.show()
-plt.close()
+metadata_new.to_csv(output_dir/'metadata.csv', index=False)
+metadata_new
 
 # %% [markdown]
 # # Upload to Kaggle
