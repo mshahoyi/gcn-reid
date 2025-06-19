@@ -265,10 +265,10 @@ df
 
 # %%
 # Plot the 5 least correct images with their matches
-num_images = 100
+num_images = 500
 
 sorted_df = df.sort_values(by=['mega_highest_correct_score'], ascending=False).reset_index(drop=True)
-for i, row in tqdm(sorted_df[:num_images:10].iterrows(), total=num_images):
+for i, row in tqdm(sorted_df[100:num_images:10].iterrows(), total=num_images):
     fig, axes = plt.subplots(1, 5, figsize=(15, 5))
 
     # Plot query image
