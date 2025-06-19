@@ -1,2 +1,9 @@
 - GCN10P7S8 is actually 3 different individuals
-- 
+    - Transfered 7 files from GCN10P7S8 to GCN11P7S8
+    - Transfered 3 files from GCN13P7S8 to GCN11P7S8
+
+- Deleted GCN1P4S4 IMG_3863.JPEG
+- Deleted GCN8-P3-S6 - IMG_3621.JPEG
+- Survey 6 two newts in pond 3 are in pond 2 subfolder
+- Deleted GCN54-P2-S4 - IMG_3239.JPEG because belly was not visible
+- Deleted GCN50-P2-S4 - IMG_3213.JPEG because belly was not visible
