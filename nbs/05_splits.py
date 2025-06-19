@@ -100,16 +100,15 @@ if not (artifacts_path/artifacts_name).exists():
     df['mega_features'] = [features.tolist() for features in mega_results.features]
     df['miewid_features'] = [features.tolist() for features in miewid_results.features]
     df.to_csv(artifacts_path/artifacts_name, index=False)
-else: df = pd.read_csv(artifacts_path/artifacts_name)
+else: 
+    df = pd.read_csv(artifacts_path/artifacts_name)
+    df['mega_features'] = df['mega_features'].apply(eval)
+    df['miewid_features'] = df['miewid_features'].apply(eval)
 
 # %% [markdown]
 # ## Get all cosine similarities and save the highest correct match and the highest incorrect match scores and indices
 # We will have 8 new columns: mega_highest_correct_score, mega_highest_correct_idx, mega_highest_incorrect_score, mega_highest_incorrect_idx, miewid_highest_correct_score, miewid_highest_correct_idx, miewid_highest_incorrect_score, miewid_highest_incorrect_idx
 # Convert string representation of features back to arrays
-
-# %%
-df['mega_features'] = df['mega_features'].apply(eval)
-df['miewid_features'] = df['miewid_features'].apply(eval)
 
 # %%
 mega_features = np.array(df['mega_features'].tolist())
@@ -268,16 +267,16 @@ df.mega_highest_correct_score.hist(bins=50)
 
 # %%
 # Plot the 5 least correct images with their matches
-num_images = 100
+num_images = 50
 
-sorted_df = df.sort_values(by=['mega_highest_correct_score'], ascending=True).reset_index(drop=True)
+sorted_df = df.sort_values(by=['rightness_score'], ascending=True).reset_index(drop=True)
 for i, row in tqdm(sorted_df[:num_images].iterrows(), total=num_images):
     fig, axes = plt.subplots(1, 5, figsize=(15, 5))
 
     # Plot query image
     query_path = dataset_path / row['path']
     axes[0].imshow(plt.imread(query_path))
-    axes[0].set_title(f'Query\nID: {row["identity"]} - {row.file_name}')
+    axes[0].set_title(f'Query\nID: {row["identity"]} - {row.file_name}\n{row.creation_date}')
     axes[0].axis('off')
 
     # Define matches to plot
@@ -294,11 +293,11 @@ for i, row in tqdm(sorted_df[:num_images].iterrows(), total=num_images):
         match_path = dataset_path / match_row['path']
         ax = axes[match['ax_idx']]
         ax.imshow(plt.imread(match_path))
-        ax.set_title(f'{match["type"]}\nScore: {row[match["score_col"]]:.3f}\n{match_row.identity}-{match_row.file_name}')
+        ax.set_title(f'{match["type"]}\nScore: {row[match["score_col"]]:.3f}\n{match_row.identity}/{match_row.file_name}\n{row.creation_date}', fontsize=10)
         ax.axis('off')
 
     fig.tight_layout()
-    fig.savefig(artifacts_path/f'least_correct_matches_mega_idx_{i}.png')
+    fig.savefig(artifacts_path/f'least_correct_matches_rightness_score_{i}.png')
     plt.close(fig)
 
 
@@ -310,20 +309,24 @@ for i, row in tqdm(sorted_df[:num_images].iterrows(), total=num_images):
 # Starting with the least right images, mark the query and database images. Skip images that are already marked (this means they are the database for another image).
 
 # %%
+df.groupby('identity').rightness_score.min().sort_values(ascending=True).index.tolist()
+
+# %%
 def mark_query_and_database(df):
     df['is_query'] = pd.NA
 
-    for i, row in df.sort_values(by=['rightness_score'], ascending=True).iterrows():
+    for count, (i, row) in enumerate(df.groupby('identity').rightness_score.min().sort_values(by=['rightness_score'], ascending=True).iterrows()):
         mega_incorrect_idx = row['mega_highest_incorrect_idx']
         miewid_incorrect_idx = row['miewid_highest_incorrect_idx']
-        if pd.notna(df.at[i, 'is_query']) or (pd.notna(df.at[mega_incorrect_idx, 'is_query']) or pd.notna(df.at[miewid_incorrect_idx, 'is_query'])) or (df[df['identity'] == row['identity']]['is_query'] == True).any():
-            continue
-
-        # All the other images of the same newt become the database
-        df.loc[df['identity'] == row['identity'], 'is_query'] = False
+        # if pd.notna(df.at[i, 'is_query']) or (pd.notna(df.at[mega_incorrect_idx, 'is_query']) or pd.notna(df.at[miewid_incorrect_idx, 'is_query'])) or (df[df['identity'] == row['identity']]['is_query'] == True).any():
+        #     continue
 
         # Mark the image itself as query
         df.at[i, 'is_query'] = True
+        
+
+        # All the other images of the same newt become the database
+        df.loc[df['identity'] == row['identity'], 'is_query'] = False
 
         # Mark the incorrect matches as database
         df.at[int(mega_incorrect_idx), 'is_query'] = False

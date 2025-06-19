@@ -8,3 +8,4 @@
 - Deleted GCN54-P2-S4 - IMG_3239.JPEG because belly was not visible
 - Deleted GCN50-P2-S4 - IMG_3213.JPEG because belly was not visible
 - Deleted GCN2-P1-S1 - IMG_2274.JPEG because newt was barely visible
+- Deleted GCN53-P2-S4 because it was a duplicate of GCN52-P2-S4
