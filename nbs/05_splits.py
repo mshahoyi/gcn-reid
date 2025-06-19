@@ -267,8 +267,8 @@ df
 # Plot the 5 least correct images with their matches
 num_images = 100
 
-sorted_df = df.sort_values(by=['rightness_score'], ascending=True).reset_index(drop=True)
-for i, row in tqdm(sorted_df[50:num_images].iterrows(), total=num_images):
+sorted_df = df.sort_values(by=['mega_highest_correct_score'], ascending=False).reset_index(drop=True)
+for i, row in tqdm(sorted_df[:num_images:10].iterrows(), total=num_images):
     fig, axes = plt.subplots(1, 5, figsize=(15, 5))
 
     # Plot query image
@@ -295,7 +295,7 @@ for i, row in tqdm(sorted_df[50:num_images].iterrows(), total=num_images):
         ax.axis('off')
 
     fig.tight_layout()
-    fig.savefig(artifacts_path/f'least_correct_matches_idx_{i}.png')
+    fig.savefig(artifacts_path/f'correct_matches_mega_idx_{i}.png')
     plt.close(fig)
 
 
