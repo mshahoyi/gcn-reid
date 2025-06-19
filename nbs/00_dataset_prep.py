@@ -12,9 +12,14 @@ import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import os
 import shutil
 from pathlib import Path
-from wildlife_datasets import datasets, analysis, splits
+from wildlife_datasets import datasets, analysis
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from PIL.ExifTags import TAGS
+from PIL import Image
+import os
+import exifread
+from pymediainfo import MediaInfo
 
 # %%
 # Set pandas display options to show all columns and wide output
@@ -70,47 +75,6 @@ metadata['file_name'] = metadata['file_path'].apply(lambda x: os.path.basename(x
 metadata['is_video'] = metadata['file_name'].apply(lambda x: 'mov' in x.lower())
 metadata.head()
 
-# %% [markdown]
-# # Merging and deleting images
-
-# %%
-gcns_to_merge = [
-    # ("GCN10-P7-S8", "GCN11-P7-S8", "GCN13-P7-S8"), These are not the same newts. There is probably image level contamination.
-    ("GCN53-P2-S4", "GCN52-P2-S4"),
-]
-
-files_to_delete = [
-    ("GCN54-P2-S2", "IMG_2665.JPEG"),
-    ("GCN8-P3-S6", "IMG_3623.JPEG"),
-    ("GCN1-P4-S4", "IMG_2895.JPEG"),
-    ("GCN54-P2-S4", "IMG_3239.JPEG"),
-    ("GCN50-P2-S4", "IMG_3213.JPEG"),
-    
-    # These should be transferred
-    # ("GCN13-P7-S8", "IMG_3859.JPEG"),
-    # ("GCN13-P7-S8", "IMG_3859.MOV"),
-    # ("GCN13-P7-S8", "IMG_3860.JPEG"),
-]
-
-file_identities_to_change = [ # tuple of (new identity, file name)
-    ()
-]
-
-# %%
-print(f"Number of identities before merging: {metadata.identity.nunique()}")
-for merge_group in gcns_to_merge:
-    metadata.loc[metadata.identity.isin(merge_group[1:]), 'identity'] = merge_group[0]
-print(f"Number of identities after merging: {metadata.identity.nunique()}")
-
-# %%
-print(f"Number of files before deleting: {metadata.file_name.nunique()}")
-for gcn_id, file_name in files_to_delete:
-    metadata = metadata[~((metadata.identity == gcn_id) & (metadata.file_name == file_name))]
-print(f"Number of files after deleting: {metadata.file_name.nunique()}")
-
-# %%
-metadata.head()
-
 # %%
 output_dir = Path("./data/gcns-processed")
 shutil.rmtree(output_dir, ignore_errors=True)
@@ -141,6 +105,49 @@ for i, row in tqdm(metadata_new.iterrows()):
     Path(output_dir/new_path).parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(row.file_path, output_dir/new_path)
     metadata_new.loc[i, 'file_path'] = new_path
+
+
+# %% [markdown]
+# # Extract the images time of capture
+
+# %%
+def get_image_creation_date(image_path):
+    with open(image_path, 'rb') as f:
+        tags = exifread.process_file(f, stop_tag="EXIF DateTimeOriginal")
+        date_tag = tags.get("EXIF DateTimeOriginal")
+        if date_tag:
+            return pd.to_datetime(str(date_tag), format='%Y:%m:%d %H:%M:%S', utc=True)
+    return None
+
+def get_video_creation_date(video_path):
+    media_info = MediaInfo.parse(video_path)
+    for track in media_info.tracks:
+        if track.track_type == "General":
+            date = (
+                track.tagged_date or
+                track.recorded_date or
+                track.encoded_date
+            )
+            if date:
+                return pd.to_datetime(date).floor('s')
+    return None
+
+def get_creation_date(row):
+    file_path = os.path.join(output_dir, row.file_path)
+    is_video = row.is_video
+
+    if is_video: return get_video_creation_date(file_path)
+    return get_image_creation_date(file_path)
+
+# %%
+metadata_new['creation_date'] = pd.NA
+
+for i, row in tqdm(metadata_new.iterrows(), total=len(metadata_new)):
+    creation_date = get_creation_date(row)
+    metadata_new.at[i, 'creation_date'] = creation_date
+
+# %%
+metadata_new
 
 # %%
 metadata_new.to_csv(output_dir/'metadata.csv', index=False)
