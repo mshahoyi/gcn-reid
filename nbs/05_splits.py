@@ -150,8 +150,12 @@ def get_highest_correct_and_incorrect_matches(df, similarities, i, row):
     correct_sims = sims[correct_mask]
     incorrect_sims = sims[incorrect_mask]
 
-    highest_correct_idx = other_indices[correct_mask][np.argmax(correct_sims)]
-    highest_correct_score = np.max(correct_sims)
+    if correct_sims.size > 0:
+        highest_correct_idx = other_indices[correct_mask][np.argmax(correct_sims)]
+        highest_correct_score = np.max(correct_sims)
+    else:
+        highest_correct_idx = np.nan
+        highest_correct_score = np.nan
 
     highest_incorrect_idx = other_indices[incorrect_mask][np.argmax(incorrect_sims)]
     highest_incorrect_score = np.max(incorrect_sims)
@@ -267,7 +271,7 @@ df.mega_highest_correct_score.hist(bins=50)
 
 # %%
 # Plot the 5 least correct images with their matches
-num_images = 50
+num_images = 1
 
 sorted_df = df.sort_values(by=['rightness_score'], ascending=True).reset_index(drop=True)
 for i, row in tqdm(sorted_df[:num_images].iterrows(), total=num_images):
@@ -309,28 +313,37 @@ for i, row in tqdm(sorted_df[:num_images].iterrows(), total=num_images):
 # Starting with the least right images, mark the query and database images. Skip images that are already marked (this means they are the database for another image).
 
 # %%
-df.groupby('identity').rightness_score.min().sort_values(ascending=True).index.tolist()
 
 # %%
-def mark_query_and_database(df):
+def mark_query_and_database(df, split, split_size, source_df):
     df['is_query'] = pd.NA
 
-    for count, (i, row) in enumerate(df.groupby('identity').rightness_score.min().sort_values(by=['rightness_score'], ascending=True).iterrows()):
-        mega_incorrect_idx = row['mega_highest_incorrect_idx']
-        miewid_incorrect_idx = row['miewid_highest_incorrect_idx']
-        # if pd.notna(df.at[i, 'is_query']) or (pd.notna(df.at[mega_incorrect_idx, 'is_query']) or pd.notna(df.at[miewid_incorrect_idx, 'is_query'])) or (df[df['identity'] == row['identity']]['is_query'] == True).any():
-        #     continue
+    sorted_df = df.loc[df.groupby('identity')['rightness_score'].idxmin()].sort_values(by=['rightness_score'], ascending=True)
+    for count, (i, row) in enumerate(sorted_df.iterrows()):
+        mega_incorrect_idx = int(row['mega_highest_incorrect_idx'])
+        miewid_incorrect_idx = int(row['miewid_highest_incorrect_idx'])
+        mega_incorrect_newt = source_df.at[mega_incorrect_idx, 'identity']
+        miewid_incorrect_newt = source_df.at[miewid_incorrect_idx, 'identity']
 
-        # Mark the image itself as query
-        df.at[i, 'is_query'] = True
-        
+        if pd.notna(df.at[i, 'is_query']):
+            continue
 
         # All the other images of the same newt become the database
         df.loc[df['identity'] == row['identity'], 'is_query'] = False
 
+        # Mark the image itself as query
+        df.at[i, 'is_query'] = True
+        
         # Mark the incorrect matches as database
-        df.at[int(mega_incorrect_idx), 'is_query'] = False
-        df.at[int(miewid_incorrect_idx), 'is_query'] = False
+        df.loc[(df['identity'] == mega_incorrect_newt) & (df.is_query != True), 'is_query'] = False
+        df.loc[(df['identity'] == miewid_incorrect_newt) & (df.is_query != True), 'is_query'] = False
+
+        df.loc[df['identity'] == row['identity'], 'split'] = split
+        df.loc[df['identity'] == mega_incorrect_newt, 'split'] = split
+        df.loc[df['identity'] == miewid_incorrect_newt, 'split'] = split
+
+        if split_size == count:
+            break
 
     return df
 
@@ -344,7 +357,7 @@ def test_mark_query_and_database():
     }
     test_df = pd.DataFrame(data)
     
-    processed_df = mark_query_and_database(test_df.copy())
+    processed_df = mark_query_and_database(test_df.copy(), 'test', 8, test_df)
     
     expected_is_query_list = [True, False, False, False, True, False, False, False]
     expected_is_query = pd.Series(expected_is_query_list, name='is_query')
@@ -363,8 +376,31 @@ def test_mark_query_and_database():
 test_mark_query_and_database()
 
 # %%
-df = mark_query_and_database(df)
-df.is_query.value_counts()
+df_with_test_split = mark_query_and_database(df.copy(), 'test', 20, df)
+df_test = df_with_test_split[df_with_test_split['split'] == 'test'].copy()
+df_rest = df_with_test_split[df_with_test_split['split'] != 'test'].copy()
+
+df_rest = mark_query_and_database(df_rest, 'val', 20, df)
+df_rest.loc[df_rest['split'].isna(), 'split'] = 'train'
+splitted_df = pd.concat([df_test, df_rest])
+
+# %%
+splitted_df[['is_query', 'split']].value_counts()
+
+# %%
+columns_to_drop = [
+    'mega_features', 'miewid_features',
+    'mega_highest_correct_score', 'mega_highest_correct_idx',
+    'mega_highest_incorrect_score', 'mega_highest_incorrect_idx', 
+    'miewid_highest_correct_score', 'miewid_highest_correct_idx',
+    'miewid_highest_incorrect_score', 'miewid_highest_incorrect_idx',
+    'mega_rightness_score', 'miewid_rightness_score', 'rightness_score'
+]
+splitted_df = splitted_df.drop(columns=columns_to_drop)
+splitted_df.to_csv(artifacts_path/'splitted_df.csv', index=False)
+
+
+
 
 # %% [markdown]
 # ## Create splits
