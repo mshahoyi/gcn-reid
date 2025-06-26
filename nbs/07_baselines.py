@@ -673,3 +673,13 @@ for i, row in tqdm(all_results_df[:0].iterrows(), total=len(all_results_df)):
     file_name = f'query_id_{row["query", "identity"]}_{row["query", "image_name"]}_{row.model.iloc[0]}_{row.debiasing.iloc[0]}_split_{row.split.iloc[0]}.pdf'
     plt.savefig(save_path/file_name, format='pdf', dpi=300, bbox_inches='tight')
     plt.close()
+
+# %% [markdown]
+# # The 24 evaluation previews
+# We want to show the evaluations, so we can select one for each of the model (x2), split (x3), debiasing (x4), making
+# it a total of 24
+
+# %%
+all_results_df.groupby(['model', 'split', 'debiasing']).first()[[['query', 'identity'], ['query', 'image_name']]]
+
+# %%
