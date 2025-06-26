@@ -466,7 +466,7 @@ def plot_predictions(query_id, query_image_name, pred_scores, pred_image_ids, pr
 # %%
 # Get image paths and plot first example
 row = acc_mega_top_5_hard_df.iloc[0]
-plt.figure(figsize=(7, 7))
+plt.figure(figsize=(14, 14))
 
 plot_predictions(query_id=row['query', 'identity'], 
                 query_image_name=row['query', 'image_name'], 
@@ -481,9 +481,6 @@ plot_predictions(query_id=row['query', 'identity'],
                 denorm_std=0.5,
                 masked=True,
                 model_name=mega)
-
-results_preview_path = artifacts_path/'results_preview'
-results_preview_path.mkdir(exist_ok=True)
 
 # plt.savefig(results_preview_path/'prediction_example.svg', format='svg', dpi=300, bbox_inches='tight')
 # plt.close()
@@ -505,7 +502,7 @@ dict_of_pred_transforms = {
 save_path = artifacts_path/'results_preview'
 save_path.mkdir(exist_ok=True)
 
-for i, row in tqdm(all_results_df[:5].iterrows(), total=len(all_results_df)):
+for i, row in tqdm(all_results_df.iterrows(), total=len(all_results_df)):
     key = f'{row.model.iloc[0]}/{row.debiasing.iloc[0]}'
     pred_transforms = dict_of_pred_transforms[key]
     query_transforms = mega_transform if row.model.iloc[0] == mega else miewid_transform
@@ -515,11 +512,11 @@ for i, row in tqdm(all_results_df[:5].iterrows(), total=len(all_results_df)):
         denorm_std = 0.5
     else:
         denorm_mean = [0.485, 0.456, 0.406] 
-        denorm_std = [0.229, 0.224, 0.225]
+        denorm_std = [0.229, 0.224, 0.225] 
 
     masked = row.debiasing.iloc[0] == bg_removed or row.debiasing.iloc[0] == bg_removed_rotated
 
-    plt.figure(figsize=(7, 7))
+    plt.figure(figsize=(10, 10))
     plot_predictions(query_id=row['query', 'identity'], 
                 query_image_name=row['query', 'image_name'], 
                 pred_scores=row['score'],
@@ -534,9 +531,6 @@ for i, row in tqdm(all_results_df[:5].iterrows(), total=len(all_results_df)):
                 masked=masked,
                 model_name=row.model.iloc[0])
 
-    file_name = f'query_id_{row["query", "identity"]}_{row["query", "image_name"]}_{row.model.iloc[0]}_{row.debiasing.iloc[0]}_{row.split.iloc[0]}.svg'
-    plt.savefig(save_path/file_name, format='svg', dpi=300, bbox_inches='tight')
+    file_name = f'query_id_{row["query", "identity"]}_{row["query", "image_name"]}_{row.model.iloc[0]}_{row.debiasing.iloc[0]}_split_{row.split.iloc[0]}.pdf'
+    plt.savefig(save_path/file_name, format='pdf', dpi=300, bbox_inches='tight')
     plt.close()
-
-# %%
-all_results_df[all_results_df.model == miewid]
