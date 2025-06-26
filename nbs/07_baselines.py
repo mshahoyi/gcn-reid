@@ -98,7 +98,7 @@ def get_cropped_newt(path, rle):
     from gcn_reid.segmentation import decode_rle_mask
     from PIL import Image
     import numpy as np
-
+    
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
@@ -195,6 +195,60 @@ else:
     df['miewid_features_cropped_rotated'] = df['miewid_features_cropped_rotated'].apply(eval)
     df['mega_features_rotated'] = df['mega_features_rotated'].apply(eval)
     df['miewid_features_rotated'] = df['miewid_features_rotated'].apply(eval)
+
+# %% [markdown]
+# # Create debiasing examples
+
+# %%
+def create_debiasing_examples(image_path, rle, dataset_path):
+    transform_crop = T.Compose([T.Resize(1000), T.CenterCrop(1000), T.ToTensor()])
+    transform_crop_rotated = T.Compose([T.Resize(1000), T.CenterCrop(1000), T.RandomRotation([90, 90]), T.ToTensor()])
+    
+    original_image = Image.open(dataset_path/image_path)
+    original_rotated_image = transform_crop_rotated(original_image).permute(1, 2, 0).numpy()
+    original_image = transform_crop(original_image).permute(1, 2, 0).numpy()
+
+    cropped_image = get_cropped_newt(dataset_path/image_path, rle)
+    cropped_rotated_image = transform_crop_rotated(cropped_image).permute(1, 2, 0).numpy()
+    cropped_image = transform_crop(cropped_image).permute(1, 2, 0).numpy()
+
+    save_folder = artifacts_path/'debiasing_examples'
+    save_folder.mkdir(exist_ok=True)
+
+    # Save original image
+    plt.figure(figsize=(5, 5))
+    plt.imshow(original_image)
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig(save_folder/Path(image_path).name.replace('.JPEG', '_original.JPEG'), format='JPEG', dpi=300)
+    plt.close()
+
+    # Save cropped image
+    plt.figure(figsize=(5, 5))
+    plt.imshow(cropped_image)
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig(save_folder/Path(image_path).name.replace('.JPEG', '_cropped.JPEG'), format='JPEG', dpi=300)
+    plt.close()
+
+    # Save original rotated image
+    plt.figure(figsize=(5, 5))
+    plt.imshow(original_rotated_image)
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig(save_folder/Path(image_path).name.replace('.JPEG', '_original_rotated.JPEG'), format='JPEG', dpi=300)
+    plt.close()
+
+    # Save cropped rotated image
+    plt.figure(figsize=(5, 5))
+    plt.imshow(cropped_rotated_image)
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig(save_folder/Path(image_path).name.replace('.JPEG', '_cropped_rotated.JPEG'), format='JPEG', dpi=300)
+    plt.close()
+
+# %%
+create_debiasing_examples(df.iloc[10]['path'], df.iloc[10]['segmentation_mask_rle'], dataset_path)
 
 # %%
 similarity_function = CosineSimilarity()
