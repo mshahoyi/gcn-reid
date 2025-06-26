@@ -1,0 +1,12 @@
+{
+    "emeraldwalk.runonsave": {
+        "commands": [
+          {
+            "match": "\\.py$",
+            "isAsync": true,
+            "cmd": "jupytext --to ipynb nbs/*.py --update"
+          },
+      ]
+    },
+    "python.analysis.extraPaths": ["/kaggle/working/wildlife-tools", "/kaggle/working/wildlife-datasets"]
+}

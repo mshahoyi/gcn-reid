@@ -1,0 +1,4 @@
+execute:
+  enabled: false
+  # freeze: true     # never re-run a notebook while previewing
+  # freeze: auto   # (optional) only re-run if the source notebook changes

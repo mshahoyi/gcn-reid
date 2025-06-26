@@ -1,0 +1,31 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 00_attribution.ipynb
+      - 01_gcn_seg.ipynb
+      - 02_bsl_exp.ipynb
+      - 03_newt_current.ipynb
+      - 04_finetuning.ipynb
+      - section: gsam2
+        contents:
+          - section: demo
+            contents:
+              - section: frontend
+                contents: []
+                href: gsam2/demo/frontend/index.html
+          - section: grounding_dino
+            contents:
+              - gsam2/grounding_dino/test.ipynb
+              - section: demo
+                contents:
+                  - gsam2/grounding_dino/demo/image_editing_with_groundingdino_gligen.ipynb
+                  - gsam2/grounding_dino/demo/image_editing_with_groundingdino_stablediffusion.ipynb
+          - section: notebooks
+            contents:
+              - gsam2/notebooks/automatic_mask_generator_example.ipynb
+              - gsam2/notebooks/image_predictor_example.ipynb
+              - gsam2/notebooks/video_predictor_example.ipynb
+          - section: sav_dataset
+            contents:
+              - gsam2/sav_dataset/sav_visualization_example.ipynb

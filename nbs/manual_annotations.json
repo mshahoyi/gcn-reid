@@ -1,0 +1,182 @@
+{
+  "classes": [{"name": "GCN", "features": [], "color": "#010171"}],
+  "images": [
+    {
+      "image": "IMG_3251.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 31.770883054892604,
+            "y": 598.7589498806683,
+            "width": 745.3937947494034,
+            "height": 1441.9093078758951
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_3569.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 485.8639618138424,
+            "y": 166.02386634844868,
+            "width": 647.0047732696896,
+            "height": 1823.8210023866345
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_2827.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 254.1037037037037,
+            "y": 815.4074074074074,
+            "width": 1790.1037037037038,
+            "height": 521.4814814814815
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_2741.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 449.6801909307876,
+            "y": 376.3627684964201,
+            "width": 588.983293556086,
+            "height": 1666.7494033412888
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_3301.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 508.33412887828166,
+            "y": 237.05966587112172,
+            "width": 862.7016706443915,
+            "height": 1554.3293556085919
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_3275.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 317.708830548926,
+            "y": 344.59188544152744,
+            "width": 816.2673031026254,
+            "height": 1625.202863961814
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_2357.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 591.4272076372315,
+            "y": 217.50835322195704,
+            "width": 432.5727923627685,
+            "height": 1559.2171837708831
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_2329.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 376.3627684964201,
+            "y": 503.4463007159905,
+            "width": 459.45584725537,
+            "height": 1048.439140811456
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_2293.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 376.3627684964201,
+            "y": 256.6109785202864,
+            "width": 520.5536992840096,
+            "height": 1788.945107398568
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_2439.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {"x": 0, "y": 767.3890214797136, "width": 1495.675417661098, "height": 676.964200477327}
+        }
+      ]
+    },
+    {
+      "image": "IMG_2440.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 571.8758949880669,
+            "y": 2.443914081145585,
+            "width": 610.9785202863961,
+            "height": 2038.224343675418
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_2521.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 610.9785202863962,
+            "y": 46.434367541766115,
+            "width": 501.0023866348448,
+            "height": 1686.3007159904537
+          }
+        }
+      ]
+    },
+    {
+      "image": "IMG_2602.JPEG",
+      "annotations": [
+        {
+          "class": "GCN",
+          "boundingBox": {
+            "x": 588.983293556086,
+            "y": 569.4319809069212,
+            "width": 459.4558472553699,
+            "height": 1346.596658711217
+          }
+        }
+      ]
+    }
+  ]
+}
