@@ -228,6 +228,83 @@ accuracy, top_k_df = get_top_k_accuracy(df, 'is_hard_test_query', 'miewid_featur
 top_k_df
 
 # %%
+def calculate_map(df, query_col, feature_col, database_feature_col=None):
+    """
+    Calculate mean Average Precision (mAP) for retrieval task.
+    
+    Args:
+        df: DataFrame containing features and metadata
+        query_col: Column name indicating query samples (boolean)
+        feature_col: Column name containing features for queries
+        database_feature_col: Column name containing features for database (if different from feature_col)
+    
+    Returns:
+        mAP: Mean Average Precision score
+    """
+    from sklearn.metrics import average_precision_score
+    
+    query_df = df[df[query_col] == True].reset_index(drop=True)
+    database_df = df[df[query_col] != True].reset_index(drop=True)
+
+    query_dataset = FeatureDataset(features=query_df[feature_col].tolist(), metadata=query_df)
+    database_dataset = FeatureDataset(features=database_df[database_feature_col if database_feature_col else feature_col].tolist(), metadata=database_df)
+
+    similarity = similarity_function(query_dataset, database_dataset)
+    
+    aps = []
+    
+    for i, query_label in enumerate(query_dataset.labels_string):
+        # Get similarity scores for this query
+        scores = similarity[i]
+        
+        # Create binary relevance labels (1 if same identity, 0 otherwise)
+        relevance = (database_dataset.labels_string == query_label).astype(int)
+        
+        # Calculate Average Precision for this query
+        if np.sum(relevance) > 0:  # Only if there are relevant items
+            ap = average_precision_score(relevance, scores)
+            aps.append(ap)
+    
+    return np.mean(aps) if aps else 0.0
+
+# %%
+test_map = calculate_map(df, 'is_hard_test_query', 'miewid_features')
+test_map
+
+# %%
+# Calculate mAP for all your configurations
+# Hard test queries
+map_mega_hard = calculate_map(df, 'is_hard_test_query', 'mega_features')
+map_miewid_hard = calculate_map(df, 'is_hard_test_query', 'miewid_features')
+map_mega_hard_cropped = calculate_map(df, 'is_hard_test_query', 'mega_features_cropped')
+map_miewid_hard_cropped = calculate_map(df, 'is_hard_test_query', 'miewid_features_cropped')
+map_mega_hard_rotated = calculate_map(df, 'is_hard_test_query', 'mega_features', 'mega_features_rotated')
+map_miewid_hard_rotated = calculate_map(df, 'is_hard_test_query', 'miewid_features', 'miewid_features_rotated')
+map_mega_hard_cropped_rotated = calculate_map(df, 'is_hard_test_query', 'mega_features_cropped', 'mega_features_cropped_rotated')
+map_miewid_hard_cropped_rotated = calculate_map(df, 'is_hard_test_query', 'miewid_features_cropped', 'miewid_features_cropped_rotated')
+
+# Random test queries
+map_mega_random = calculate_map(df, 'is_random_test_query', 'mega_features')
+map_miewid_random = calculate_map(df, 'is_random_test_query', 'miewid_features')
+map_mega_random_cropped = calculate_map(df, 'is_random_test_query', 'mega_features_cropped')
+map_miewid_random_cropped = calculate_map(df, 'is_random_test_query', 'miewid_features_cropped')
+map_mega_random_rotated = calculate_map(df, 'is_random_test_query', 'mega_features', 'mega_features_rotated')
+map_miewid_random_rotated = calculate_map(df, 'is_random_test_query', 'miewid_features', 'miewid_features_rotated')
+map_mega_random_cropped_rotated = calculate_map(df, 'is_random_test_query', 'mega_features_cropped', 'mega_features_cropped_rotated')
+map_miewid_random_cropped_rotated = calculate_map(df, 'is_random_test_query', 'miewid_features_cropped', 'miewid_features_cropped_rotated')
+
+# Least similar test queries
+map_mega_least = calculate_map(df, 'is_least_similar_test_query', 'mega_features')
+map_miewid_least = calculate_map(df, 'is_least_similar_test_query', 'miewid_features')
+map_mega_least_cropped = calculate_map(df, 'is_least_similar_test_query', 'mega_features_cropped')
+map_miewid_least_cropped = calculate_map(df, 'is_least_similar_test_query', 'miewid_features_cropped')
+map_mega_least_rotated = calculate_map(df, 'is_least_similar_test_query', 'mega_features', 'mega_features_rotated')
+map_miewid_least_rotated = calculate_map(df, 'is_least_similar_test_query', 'miewid_features', 'miewid_features_rotated')
+map_mega_least_cropped_rotated = calculate_map(df, 'is_least_similar_test_query', 'mega_features_cropped', 'mega_features_cropped_rotated')
+map_miewid_least_cropped_rotated = calculate_map(df, 'is_least_similar_test_query', 'miewid_features_cropped', 'miewid_features_cropped_rotated')
+
+
+# %%
 acc_mega_top_1_hard, acc_mega_top_1_hard_df = get_top_k_accuracy(df, 'is_hard_test_query', 'mega_features', k=1)
 acc_mega_top_5_hard, acc_mega_top_5_hard_df = get_top_k_accuracy(df, 'is_hard_test_query', 'mega_features', k=5)
 acc_miewid_top_1_hard, acc_miewid_top_1_hard_df = get_top_k_accuracy(df, 'is_hard_test_query', 'miewid_features', k=1)
@@ -318,6 +395,7 @@ miewid = 'MiewID'
 # Metrics
 top_1 = 'Top-1'
 top_5 = 'Top-5'
+mAP = 'mAP'
 
 # Create hierarchical index for rows
 row_idx = pd.MultiIndex.from_product([
@@ -328,37 +406,44 @@ row_idx = pd.MultiIndex.from_product([
 # Create hierarchical columns
 col_idx = pd.MultiIndex.from_product([
     [mega, miewid], 
-    [top_1, top_5]
+    [top_1, top_5, mAP]
 ], names=['model', 'metric'])
 
-# Create data matrix
-data = [
+# Update your results DataFrame to include mAP
+# Add mAP column to your existing results_df
+data_with_map = [
     # Random split
-    [acc_mega_top_1_random, acc_mega_top_5_random, acc_miewid_top_1_random, acc_miewid_top_5_random],
-    [acc_mega_top_1_random_cropped, acc_mega_top_5_random_cropped, acc_miewid_top_1_random_cropped, acc_miewid_top_5_random_cropped],
-    [acc_mega_top_1_random_rotated, acc_mega_top_5_random_rotated, acc_miewid_top_1_random_rotated, acc_miewid_top_5_random_rotated],
-    [acc_mega_top_1_random_cropped_rotated, acc_mega_top_5_random_cropped_rotated, acc_miewid_top_1_random_cropped_rotated, acc_miewid_top_5_random_cropped_rotated],
+    [acc_mega_top_1_random, acc_mega_top_5_random, map_mega_random, acc_miewid_top_1_random, acc_miewid_top_5_random, map_miewid_random],
+    [acc_mega_top_1_random_cropped, acc_mega_top_5_random_cropped, map_mega_random_cropped, acc_miewid_top_1_random_cropped, acc_miewid_top_5_random_cropped, map_miewid_random_cropped],
+    [acc_mega_top_1_random_rotated, acc_mega_top_5_random_rotated, map_mega_random_rotated, acc_miewid_top_1_random_rotated, acc_miewid_top_5_random_rotated, map_miewid_random_rotated],
+    [acc_mega_top_1_random_cropped_rotated, acc_mega_top_5_random_cropped_rotated, map_mega_random_cropped_rotated, acc_miewid_top_1_random_cropped_rotated, acc_miewid_top_5_random_cropped_rotated, map_miewid_random_cropped_rotated],
     
     # Least similar split
-    [acc_mega_top_1_least, acc_mega_top_5_least, acc_miewid_top_1_least, acc_miewid_top_5_least],
-    [acc_mega_top_1_least_cropped, acc_mega_top_5_least_cropped, acc_miewid_top_1_least_cropped, acc_miewid_top_5_least_cropped],
-    [acc_mega_top_1_least_rotated, acc_mega_top_5_least_rotated, acc_miewid_top_1_least_rotated, acc_miewid_top_5_least_rotated],
-    [acc_mega_top_1_least_cropped_rotated, acc_mega_top_5_least_cropped_rotated, acc_miewid_top_1_least_cropped_rotated, acc_miewid_top_5_least_cropped_rotated],
+    [acc_mega_top_1_least, acc_mega_top_5_least, map_mega_least, acc_miewid_top_1_least, acc_miewid_top_5_least, map_miewid_least],
+    [acc_mega_top_1_least_cropped, acc_mega_top_5_least_cropped, map_mega_least_cropped, acc_miewid_top_1_least_cropped, acc_miewid_top_5_least_cropped, map_miewid_least_cropped],
+    [acc_mega_top_1_least_rotated, acc_mega_top_5_least_rotated, map_mega_least_rotated, acc_miewid_top_1_least_rotated, acc_miewid_top_5_least_rotated, map_miewid_least_rotated],
+    [acc_mega_top_1_least_cropped_rotated, acc_mega_top_5_least_cropped_rotated, map_mega_least_cropped_rotated, acc_miewid_top_1_least_cropped_rotated, acc_miewid_top_5_least_cropped_rotated, map_miewid_least_cropped_rotated],
     
     # Hard split
-    [acc_mega_top_1_hard, acc_mega_top_5_hard, acc_miewid_top_1_hard, acc_miewid_top_5_hard],
-    [acc_mega_top_1_hard_cropped, acc_mega_top_5_hard_cropped, acc_miewid_top_1_hard_cropped, acc_miewid_top_5_hard_cropped],
-    [acc_mega_top_1_hard_rotated, acc_mega_top_5_hard_rotated, acc_miewid_top_1_hard_rotated, acc_miewid_top_5_hard_rotated],
-    [acc_mega_top_1_hard_cropped_rotated, acc_mega_top_5_hard_cropped_rotated, acc_miewid_top_1_hard_cropped_rotated, acc_miewid_top_5_hard_cropped_rotated]
+    [acc_mega_top_1_hard, acc_mega_top_5_hard, map_mega_hard, acc_miewid_top_1_hard, acc_miewid_top_5_hard, map_miewid_hard],
+    [acc_mega_top_1_hard_cropped, acc_mega_top_5_hard_cropped, map_mega_hard_cropped, acc_miewid_top_1_hard_cropped, acc_miewid_top_5_hard_cropped, map_miewid_hard_cropped],
+    [acc_mega_top_1_hard_rotated, acc_mega_top_5_hard_rotated, map_mega_hard_rotated, acc_miewid_top_1_hard_rotated, acc_miewid_top_5_hard_rotated, map_miewid_hard_rotated],
+    [acc_mega_top_1_hard_cropped_rotated, acc_mega_top_5_hard_cropped_rotated, map_mega_hard_cropped_rotated, acc_miewid_top_1_hard_cropped_rotated, acc_miewid_top_5_hard_cropped_rotated, map_miewid_hard_cropped_rotated]
 ]
 
-results_df = pd.DataFrame(data, index=row_idx, columns=col_idx)
-results_df
+# Create hierarchical columns including mAP
+col_idx_with_map = pd.MultiIndex.from_product([
+    [mega, miewid], 
+    [top_1, top_5, 'mAP']
+], names=['model', 'metric'])
 
+results_df_with_map = pd.DataFrame(data_with_map, index=row_idx, columns=col_idx_with_map)
+results_df_with_map.to_csv(artifacts_path/'baseline_results.csv', index=False)
+results_df_with_map
 
 # %%
 # Save results as LaTeX table
-latex_table = results_df.to_latex(
+latex_table = results_df_with_map.to_latex(
     float_format=lambda x: '{:.1f}\%'.format(x*100), # Convert to percentages with 1 decimal
     bold_rows=True,
     multicolumn=True,
@@ -397,7 +482,7 @@ all_results_df = pd.concat([
     acc_miewid_top_5_random_cropped_rotated_df.assign(split=random, model=miewid, debiasing=bg_removed_rotated),
 ])
 
-all_results_df.to_csv(artifacts_path/'baseline_results.csv', index=False)
+all_results_df.to_csv(artifacts_path/'baseline_predictions.csv', index=False)
 all_results_df
 
 # %%
@@ -502,7 +587,7 @@ dict_of_pred_transforms = {
 save_path = artifacts_path/'results_preview'
 save_path.mkdir(exist_ok=True)
 
-for i, row in tqdm(all_results_df.iterrows(), total=len(all_results_df)):
+for i, row in tqdm(all_results_df[:0].iterrows(), total=len(all_results_df)):
     key = f'{row.model.iloc[0]}/{row.debiasing.iloc[0]}'
     pred_transforms = dict_of_pred_transforms[key]
     query_transforms = mega_transform if row.model.iloc[0] == mega else miewid_transform
