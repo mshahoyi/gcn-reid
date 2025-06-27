@@ -1,0 +1,2826 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="This notebook is used to run the baselines for the GCN-ID 2024 dataset.">
+
+<title>Baselines – gcn-reid</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b1527d6dab3c1d2528611d399e709420.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Baselines – gcn-reid">
+<meta property="og:description" content="This notebook is used to run the baselines for the GCN-ID 2024 dataset.">
+<meta property="og:image" content="https://mshahoyi.github.io/gcn-reid/07_baselines_files/figure-html/cell-11-output-1.png">
+<meta property="og:site_name" content="gcn-reid">
+<meta property="og:image:height" content="470">
+<meta property="og:image:width" content="469">
+<meta name="twitter:title" content="Baselines – gcn-reid">
+<meta name="twitter:description" content="This notebook is used to run the baselines for the GCN-ID 2024 dataset.">
+<meta name="twitter:image" content="https://mshahoyi.github.io/gcn-reid/07_baselines_files/figure-html/cell-11-output-1.png">
+<meta name="twitter:image-height" content="470">
+<meta name="twitter:image-width" content="469">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">gcn-reid</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./baselines.html">Baselines</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">gcn-reid</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./attribution.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Attribution–the attribution toolkit</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./dataset_prep.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Newt Dataset Preparation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./gcn_seg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Newt Segmentation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./bsl_exp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BSL Experiment</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./newt_current.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Newt Current</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./finetuning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Finetuning</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./splits.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Splits</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utils</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./baselines.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Baselines</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./artefacts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Artefacts</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#run-both-models-on-all-test-sets-and-save-the-results" id="toc-run-both-models-on-all-test-sets-and-save-the-results" class="nav-link active" data-scroll-target="#run-both-models-on-all-test-sets-and-save-the-results">Run both models on all test sets and save the results</a>
+  <ul class="collapse">
+  <li><a href="#get_cropped_newt" id="toc-get_cropped_newt" class="nav-link" data-scroll-target="#get_cropped_newt">get_cropped_newt</a></li>
+  <li><a href="#get_cropping_image_dataset" id="toc-get_cropping_image_dataset" class="nav-link" data-scroll-target="#get_cropping_image_dataset">get_cropping_image_dataset</a></li>
+  </ul></li>
+  <li><a href="#create-debiasing-examples" id="toc-create-debiasing-examples" class="nav-link" data-scroll-target="#create-debiasing-examples">Create debiasing examples</a></li>
+  <li><a href="#the-24-evaluation-previews" id="toc-the-24-evaluation-previews" class="nav-link" data-scroll-target="#the-24-evaluation-previews">The 24 evaluation previews</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/mshahoyi/gcn-reid/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="baselines.html.md"><i class="bi bi-file-code"></i>CommonMark</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Baselines</h1>
+</div>
+
+<div>
+  <div class="description">
+    This notebook is used to run the baselines for the GCN-ID 2024 dataset.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<div id="b81d1036" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wildlife_tools.similarity <span class="im">import</span> CosineSimilarity</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wildlife_datasets <span class="im">import</span> analysis, datasets, splits</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pycocotools.mask <span class="im">as</span> mask_util</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wildlife_tools.data <span class="im">import</span> ImageDataset</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> average_precision_score</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> timm</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> AutoModel</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wildlife_tools.inference <span class="im">import</span> TopkClassifier, KnnClassifier</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wildlife_tools.features <span class="im">import</span> DeepFeatures</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torchvision.transforms <span class="im">as</span> T</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> PIL <span class="im">import</span> Image</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> kaggle</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wildlife_tools.data <span class="im">import</span> ImageDataset, FeatureDataset, FeatureDatabase</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gcn_reid.segmentation <span class="im">import</span> decode_rle_mask</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gcn_reid.newt_dataset <span class="im">import</span> upload_to_kaggle</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gcn_reid.newt_dataset <span class="im">import</span> download_kaggle_dataset</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tqdm <span class="im">import</span> tqdm</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> AutoImageProcessor, AutoModel</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cv2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2025-06-26 16:41:47.199241: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:477] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1750956107.222767   89844 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1750956107.229954   89844 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered</code></pre>
+</div>
+</div>
+<div id="1b22f2ca" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>dataset_name <span class="op">=</span> <span class="st">'mshahoyi/gcn-id-2024'</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>dataset_path <span class="op">=</span> Path(<span class="st">'data/gcn-id-2024'</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>download_kaggle_dataset(dataset_name, dataset_path)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Dataset already exists at data/gcn-id-2024</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>PosixPath('data/gcn-id-2024')</code></pre>
+</div>
+</div>
+<div id="941f35a2" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>mega <span class="op">=</span> timm.create_model(<span class="st">'hf-hub:BVRA/MegaDescriptor-L-384'</span>, pretrained<span class="op">=</span><span class="va">True</span>, num_classes<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>miewid <span class="op">=</span> AutoModel.from_pretrained(<span class="st">"conservationxlabs/miewid-msv2"</span>, trust_remote_code<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="run-both-models-on-all-test-sets-and-save-the-results" class="level2">
+<h2 class="anchored" data-anchor-id="run-both-models-on-all-test-sets-and-save-the-results">Run both models on all test sets and save the results</h2>
+<p>Artifacts are a dataframe like the newt dataframe but that contains two new columns representing the mega and miewid embeddings.</p>
+<div id="cc27a5b5" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>device <span class="op">=</span> <span class="st">'cuda'</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">'cpu'</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>mega_extractor <span class="op">=</span> DeepFeatures(mega, device<span class="op">=</span>device, batch_size<span class="op">=</span><span class="dv">32</span>, num_workers<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>miewid_extractor <span class="op">=</span> DeepFeatures(miewid, device<span class="op">=</span>device, batch_size<span class="op">=</span><span class="dv">32</span>, num_workers<span class="op">=</span><span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="4375ebe0" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(dataset_path <span class="op">/</span> <span class="st">'metadata.csv'</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> df.is_hard_test_query.notna() <span class="op">|</span> df.is_least_similar_test_query.notna() <span class="op">|</span> df.is_random_test_query.notna()</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df[mask <span class="op">&amp;</span> <span class="op">~</span>df.is_video].reset_index(drop<span class="op">=</span><span class="va">True</span>).rename(columns<span class="op">=</span>{<span class="st">"file_name"</span>: <span class="st">"image_name"</span>, <span class="st">"file_path"</span>: <span class="st">"path"</span>})</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">reference_id</th>
+<th data-quarto-table-cell-role="th">path</th>
+<th data-quarto-table-cell-role="th">image_name</th>
+<th data-quarto-table-cell-role="th">is_video</th>
+<th data-quarto-table-cell-role="th">identity</th>
+<th data-quarto-table-cell-role="th">creation_date</th>
+<th data-quarto-table-cell-role="th">bbox</th>
+<th data-quarto-table-cell-role="th">segmentation_mask_rle</th>
+<th data-quarto-table-cell-role="th">is_hard_test_query</th>
+<th data-quarto-table-cell-role="th">is_hard_val_query</th>
+<th data-quarto-table-cell-role="th">is_least_similar_test_query</th>
+<th data-quarto-table-cell-role="th">is_least_similar_val_query</th>
+<th data-quarto-table-cell-role="th">is_random_test_query</th>
+<th data-quarto-table-cell-role="th">is_random_val_query</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>GCN34-P3-S2</td>
+<td>newts/1/IMG_2532.JPEG</td>
+<td>IMG_2532.JPEG</td>
+<td>False</td>
+<td>1</td>
+<td>2024-05-10 08:37:21+00:00</td>
+<td>[14.939163208007812, 507.19061279296875, 1066....</td>
+<td>2048x1536:Sd`03ko14N0000000bNKcRN0^O5om1KcRN1]...</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>True</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>GCN34-P3-S2</td>
+<td>newts/1/IMG_2530.JPEG</td>
+<td>IMG_2530.JPEG</td>
+<td>False</td>
+<td>1</td>
+<td>2024-05-10 08:37:19+00:00</td>
+<td>[288.80975341796875, 363.1075439453125, 1062.7...</td>
+<td>2048x1536:[ajb03;31K_n1:YQN10O4Knm1h0lQN_O2O0M...</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>GCN34-P3-S2</td>
+<td>newts/1/IMG_2531.JPEG</td>
+<td>IMG_2531.JPEG</td>
+<td>False</td>
+<td>1</td>
+<td>2024-05-10 08:37:20+00:00</td>
+<td>[288.86181640625, 521.5284423828125, 1159.4096...</td>
+<td>2048x1536:Pcdb07^o1d0D7H=E5K5L5J5K3M4M3M10001N...</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>GCN34-P3-S2</td>
+<td>newts/1/IMG_2533.JPEG</td>
+<td>IMG_2533.JPEG</td>
+<td>False</td>
+<td>1</td>
+<td>2024-05-10 08:37:23+00:00</td>
+<td>[489.2838134765625, 169.9361572265625, 1132.72...</td>
+<td>2048x1536:X`Vo06do1;H;dNH]RN&gt;[m1e1]O5M4K4M3M3L...</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>GCN34-P3-S2</td>
+<td>newts/1/IMG_2534.JPEG</td>
+<td>IMG_2534.JPEG</td>
+<td>False</td>
+<td>1</td>
+<td>2024-05-10 08:37:24+00:00</td>
+<td>[365.6585388183594, 454.51068115234375, 1005.9...</td>
+<td>2048x1536:SmZd03lo13M3M2O1O1N2`QNJTm16gRN3Vm1M...</td>
+<td>NaN</td>
+<td>True</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">418</td>
+<td>GCN7-P3-S6</td>
+<td>newts/202/IMG_3618.JPEG</td>
+<td>IMG_3618.JPEG</td>
+<td>False</td>
+<td>202</td>
+<td>2024-06-07 08:17:00+00:00</td>
+<td>[173.46243286132812, 251.09988403320312, 1007....</td>
+<td>2046x1538:]UV;2m18ek14RSNJ_O159;@8:j0KRe10^YN2...</td>
+<td>False</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">419</td>
+<td>GCN7-P3-S6</td>
+<td>newts/202/IMG_3617.JPEG</td>
+<td>IMG_3617.JPEG</td>
+<td>False</td>
+<td>202</td>
+<td>2024-06-07 08:16:56+00:00</td>
+<td>[333.4060974121094, 442.3371887207031, 1123.58...</td>
+<td>2046x1538:Rlde0g0km1G_RNDOQ1ol1POoRN\2kl1`0J5T...</td>
+<td>False</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">420</td>
+<td>GCN7-P3-S6</td>
+<td>newts/202/IMG_3616.JPEG</td>
+<td>IMG_3616.JPEG</td>
+<td>False</td>
+<td>202</td>
+<td>2024-06-07 08:16:55+00:00</td>
+<td>[372.7743225097656, 699.0594482421875, 1003.42...</td>
+<td>2046x1538:k_lg0;4Kan1c1SO`0D;G8J7H7L4K5L4M4L3M...</td>
+<td>True</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">421</td>
+<td>GCN7-P3-S6</td>
+<td>newts/202/IMG_3615.JPEG</td>
+<td>IMG_3615.JPEG</td>
+<td>False</td>
+<td>202</td>
+<td>2024-06-07 08:16:54+00:00</td>
+<td>[414.04083251953125, 1346.5162353515625, 966.7...</td>
+<td>2046x1538:Ph`j0&lt;So1h0B?[Oc0Al0WO8I9Bc0C&lt;C6K6I6...</td>
+<td>False</td>
+<td>NaN</td>
+<td>True</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">422</td>
+<td>GCN7-P3-S6</td>
+<td>newts/202/IMG_3619.JPEG</td>
+<td>IMG_3619.JPEG</td>
+<td>False</td>
+<td>202</td>
+<td>2024-06-07 08:17:01+00:00</td>
+<td>[581.1024780273438, 81.09144592285156, 1273.64...</td>
+<td>2046x1538:nRlU12ao1n0POP1gjNaNk:l1gD[NR;k1iD[N...</td>
+<td>False</td>
+<td>NaN</td>
+<td>False</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+</tbody>
+</table>
+
+<p>423 rows × 14 columns</p>
+</div>
+</div>
+</div>
+<div id="d916ee05" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>mega_transform <span class="op">=</span> T.Compose([T.Resize(<span class="dv">384</span>),</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                            T.CenterCrop(<span class="dv">384</span>),</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                            T.ToTensor(), </span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>                            T.Normalize([<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>], [<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>])]) </span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>miewid_transform <span class="op">=</span> T.Compose([</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    T.Resize(<span class="dv">400</span>),</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    T.CenterCrop(<span class="dv">400</span>),</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    T.ToTensor(),</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    T.Normalize(mean<span class="op">=</span>[<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>], std<span class="op">=</span>[<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]),</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>mega_transform_rotated <span class="op">=</span> T.Compose([T.Resize(<span class="dv">384</span>),</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>                            T.CenterCrop(<span class="dv">384</span>),</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>                            T.RandomRotation([<span class="dv">90</span>, <span class="dv">90</span>]),  <span class="co"># Add 90 degree clockwise rotation</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>                            T.ToTensor(), </span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>                            T.Normalize([<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>], [<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span>])]) </span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>miewid_transform_rotated <span class="op">=</span> T.Compose([</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    T.Resize(<span class="dv">400</span>),</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    T.CenterCrop(<span class="dv">400</span>),</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    T.RandomRotation([<span class="dv">90</span>, <span class="dv">90</span>]),  <span class="co"># Add 90 degree clockwise rotation</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    T.ToTensor(),</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    T.Normalize(mean<span class="op">=</span>[<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>], std<span class="op">=</span>[<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]),</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p><a href="https://github.com/mshahoyi/gcn-reid/blob/main/gcn_reid/newt.py#L32" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="get_cropped_newt" class="level3">
+<h3 class="anchored" data-anchor-id="get_cropped_newt">get_cropped_newt</h3>
+<blockquote class="blockquote">
+<pre><code> get_cropped_newt (path, rle)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/mshahoyi/gcn-reid/blob/main/gcn_reid/newt.py#L49" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="get_cropping_image_dataset" class="level3">
+<h3 class="anchored" data-anchor-id="get_cropping_image_dataset">get_cropping_image_dataset</h3>
+<blockquote class="blockquote">
+<pre><code> get_cropping_image_dataset ()</code></pre>
+</blockquote>
+<div id="886bd358" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>CroppingImageDataset <span class="op">=</span> get_cropping_image_dataset()</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>mega_cropping_dataset <span class="op">=</span> CroppingImageDataset(df, root<span class="op">=</span>dataset_path, transform<span class="op">=</span>mega_transform, crop_out<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>miewid_cropping_dataset <span class="op">=</span> CroppingImageDataset(df, root<span class="op">=</span>dataset_path, transform<span class="op">=</span>miewid_transform, crop_out<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>mega_cropping_dataset_rotated <span class="op">=</span> CroppingImageDataset(df, root<span class="op">=</span>dataset_path, transform<span class="op">=</span>mega_transform_rotated, crop_out<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>miewid_cropping_dataset_rotated <span class="op">=</span> CroppingImageDataset(df, root<span class="op">=</span>dataset_path, transform<span class="op">=</span>miewid_transform_rotated, crop_out<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>mega_dataset <span class="op">=</span> ImageDataset(df, root<span class="op">=</span>dataset_path, transform<span class="op">=</span>mega_transform)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>miewid_dataset <span class="op">=</span> ImageDataset(df, root<span class="op">=</span>dataset_path, transform<span class="op">=</span>miewid_transform)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>mega_dataset_rotated <span class="op">=</span> ImageDataset(df, root<span class="op">=</span>dataset_path, transform<span class="op">=</span>mega_transform_rotated)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>miewid_dataset_rotated <span class="op">=</span> ImageDataset(df, root<span class="op">=</span>dataset_path, transform<span class="op">=</span>miewid_transform_rotated)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="16b3be6a" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>num_images <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(num_images):</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">1</span>, num_images, i<span class="op">+</span><span class="dv">1</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    x, y <span class="op">=</span> <span class="bu">next</span>(<span class="bu">iter</span>(mega_cropping_dataset_rotated))</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    plt.imshow(x.permute(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>))</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    plt.axis(<span class="st">'off'</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    plt.savefig(<span class="st">'mega_images.png'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="07_baselines_files/figure-html/cell-11-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="f77a3377" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>artifacts_path <span class="op">=</span> Path(<span class="st">'artifacts'</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>artifacts_path.mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>artifacts_name <span class="op">=</span> <span class="st">'baseline_features.csv'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="6e1b1e14" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> (artifacts_path<span class="op">/</span>artifacts_name).exists():</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    mega_results <span class="op">=</span> mega_extractor(mega_dataset)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    miewid_results <span class="op">=</span> miewid_extractor(miewid_dataset)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    mega_results_cropped <span class="op">=</span> mega_extractor(mega_cropping_dataset)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    miewid_results_cropped <span class="op">=</span> miewid_extractor(miewid_cropping_dataset)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    mega_results_cropped_rotated <span class="op">=</span> mega_extractor(mega_cropping_dataset_rotated)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    miewid_results_cropped_rotated <span class="op">=</span> miewid_extractor(miewid_cropping_dataset_rotated)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    mega_results_rotated <span class="op">=</span> mega_extractor(mega_dataset_rotated)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    miewid_results_rotated <span class="op">=</span> miewid_extractor(miewid_dataset_rotated)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'mega_features'</span>] <span class="op">=</span> [features.tolist() <span class="cf">for</span> features <span class="kw">in</span> mega_results.features]</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'miewid_features'</span>] <span class="op">=</span> [features.tolist() <span class="cf">for</span> features <span class="kw">in</span> miewid_results.features]</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'mega_features_cropped'</span>] <span class="op">=</span> [features.tolist() <span class="cf">for</span> features <span class="kw">in</span> mega_results_cropped.features]</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'miewid_features_cropped'</span>] <span class="op">=</span> [features.tolist() <span class="cf">for</span> features <span class="kw">in</span> miewid_results_cropped.features]</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'mega_features_cropped_rotated'</span>] <span class="op">=</span> [features.tolist() <span class="cf">for</span> features <span class="kw">in</span> mega_results_cropped_rotated.features]</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'miewid_features_cropped_rotated'</span>] <span class="op">=</span> [features.tolist() <span class="cf">for</span> features <span class="kw">in</span> miewid_results_cropped_rotated.features]</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'mega_features_rotated'</span>] <span class="op">=</span> [features.tolist() <span class="cf">for</span> features <span class="kw">in</span> mega_results_rotated.features]</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'miewid_features_rotated'</span>] <span class="op">=</span> [features.tolist() <span class="cf">for</span> features <span class="kw">in</span> miewid_results_rotated.features]</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    df.to_csv(artifacts_path<span class="op">/</span>artifacts_name, index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>: </span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pd.read_csv(artifacts_path<span class="op">/</span>artifacts_name)</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'mega_features'</span>] <span class="op">=</span> df[<span class="st">'mega_features'</span>].<span class="bu">apply</span>(<span class="bu">eval</span>)</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'miewid_features'</span>] <span class="op">=</span> df[<span class="st">'miewid_features'</span>].<span class="bu">apply</span>(<span class="bu">eval</span>)</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'mega_features_cropped'</span>] <span class="op">=</span> df[<span class="st">'mega_features_cropped'</span>].<span class="bu">apply</span>(<span class="bu">eval</span>)</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'miewid_features_cropped'</span>] <span class="op">=</span> df[<span class="st">'miewid_features_cropped'</span>].<span class="bu">apply</span>(<span class="bu">eval</span>)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'mega_features_cropped_rotated'</span>] <span class="op">=</span> df[<span class="st">'mega_features_cropped_rotated'</span>].<span class="bu">apply</span>(<span class="bu">eval</span>)</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'miewid_features_cropped_rotated'</span>] <span class="op">=</span> df[<span class="st">'miewid_features_cropped_rotated'</span>].<span class="bu">apply</span>(<span class="bu">eval</span>)</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'mega_features_rotated'</span>] <span class="op">=</span> df[<span class="st">'mega_features_rotated'</span>].<span class="bu">apply</span>(<span class="bu">eval</span>)</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">'miewid_features_rotated'</span>] <span class="op">=</span> df[<span class="st">'miewid_features_rotated'</span>].<span class="bu">apply</span>(<span class="bu">eval</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="create-debiasing-examples" class="level1">
+<h1>Create debiasing examples</h1>
+<div id="bc2f3975" class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> create_debiasing_examples(image_path, rle, dataset_path):</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    transform_crop <span class="op">=</span> T.Compose([T.Resize(<span class="dv">1000</span>), T.CenterCrop(<span class="dv">1000</span>), T.ToTensor()])</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    transform_crop_rotated <span class="op">=</span> T.Compose([T.Resize(<span class="dv">1000</span>), T.CenterCrop(<span class="dv">1000</span>), T.RandomRotation([<span class="dv">90</span>, <span class="dv">90</span>]), T.ToTensor()])</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    original_image <span class="op">=</span> Image.<span class="bu">open</span>(dataset_path<span class="op">/</span>image_path)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    original_rotated_image <span class="op">=</span> transform_crop_rotated(original_image).permute(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>).numpy()</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    original_image <span class="op">=</span> transform_crop(original_image).permute(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>).numpy()</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    cropped_image <span class="op">=</span> get_cropped_newt(dataset_path<span class="op">/</span>image_path, rle)</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    cropped_rotated_image <span class="op">=</span> transform_crop_rotated(cropped_image).permute(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>).numpy()</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    cropped_image <span class="op">=</span> transform_crop(cropped_image).permute(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>).numpy()</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    save_folder <span class="op">=</span> artifacts_path<span class="op">/</span><span class="st">'debiasing_examples'</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    save_folder.mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Save original image</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">5</span>))</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    plt.imshow(original_image)</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    plt.axis(<span class="st">'off'</span>)</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_folder<span class="op">/</span>Path(image_path).name.replace(<span class="st">'.JPEG'</span>, <span class="st">'_original.JPEG'</span>), <span class="bu">format</span><span class="op">=</span><span class="st">'JPEG'</span>, dpi<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Save cropped image</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">5</span>))</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>    plt.imshow(cropped_image)</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>    plt.axis(<span class="st">'off'</span>)</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_folder<span class="op">/</span>Path(image_path).name.replace(<span class="st">'.JPEG'</span>, <span class="st">'_cropped.JPEG'</span>), <span class="bu">format</span><span class="op">=</span><span class="st">'JPEG'</span>, dpi<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Save original rotated image</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">5</span>))</span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>    plt.imshow(original_rotated_image)</span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>    plt.axis(<span class="st">'off'</span>)</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_folder<span class="op">/</span>Path(image_path).name.replace(<span class="st">'.JPEG'</span>, <span class="st">'_original_rotated.JPEG'</span>), <span class="bu">format</span><span class="op">=</span><span class="st">'JPEG'</span>, dpi<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Save cropped rotated image</span></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">5</span>))</span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>    plt.imshow(cropped_rotated_image)</span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>    plt.axis(<span class="st">'off'</span>)</span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_folder<span class="op">/</span>Path(image_path).name.replace(<span class="st">'.JPEG'</span>, <span class="st">'_cropped_rotated.JPEG'</span>), <span class="bu">format</span><span class="op">=</span><span class="st">'JPEG'</span>, dpi<span class="op">=</span><span class="dv">300</span>)</span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="8fe4cac5" class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>create_debiasing_examples(df.iloc[<span class="dv">10</span>][<span class="st">'path'</span>], df.iloc[<span class="dv">10</span>][<span class="st">'segmentation_mask_rle'</span>], dataset_path)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="272c6983" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>similarity_function <span class="op">=</span> CosineSimilarity()</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_top_k_accuracy(df, query_col, feature_col, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    query_df <span class="op">=</span> df[df[query_col] <span class="op">==</span> <span class="va">True</span>].reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    database_df <span class="op">=</span> df[df[query_col] <span class="op">!=</span> <span class="va">True</span>].reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    query_dataset <span class="op">=</span> FeatureDataset(features<span class="op">=</span>query_df[feature_col].tolist(), metadata<span class="op">=</span>query_df)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    database_dataset <span class="op">=</span> FeatureDataset(features<span class="op">=</span>database_df[database_feature_col <span class="cf">if</span> database_feature_col <span class="cf">else</span> feature_col].tolist(), metadata<span class="op">=</span>database_df)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    similarity <span class="op">=</span> similarity_function(query_dataset, database_dataset)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    classifier <span class="op">=</span> TopkClassifier(k<span class="op">=</span>k, database_labels<span class="op">=</span>database_dataset.labels_string, return_all<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    predictions, scores, idx <span class="op">=</span> classifier(similarity)</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> query_dataset.labels_string[:, np.newaxis]</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    accuracy <span class="op">=</span> np.mean(np.<span class="bu">any</span>(y <span class="op">==</span> predictions, axis<span class="op">=</span><span class="dv">1</span>))</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    query_identities <span class="op">=</span> query_dataset.labels_string</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    query_filenames <span class="op">=</span> query_df[<span class="st">'image_name'</span>].values</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    preds_df <span class="op">=</span> pd.DataFrame(predictions, columns<span class="op">=</span>pd.MultiIndex.from_product([[<span class="st">'predicted_identity'</span>], <span class="bu">range</span>(<span class="dv">1</span>, k<span class="op">+</span><span class="dv">1</span>)]))</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    scores_df <span class="op">=</span> pd.DataFrame(scores, columns<span class="op">=</span>pd.MultiIndex.from_product([[<span class="st">'score'</span>], <span class="bu">range</span>(<span class="dv">1</span>, k<span class="op">+</span><span class="dv">1</span>)]))</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    filenames_df <span class="op">=</span> pd.DataFrame(database_df.iloc[idx.flatten()][<span class="st">'image_name'</span>].values.reshape(idx.shape), columns<span class="op">=</span>pd.MultiIndex.from_product([[<span class="st">'predicted_image_name'</span>], <span class="bu">range</span>(<span class="dv">1</span>, k<span class="op">+</span><span class="dv">1</span>)]))</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    query_df <span class="op">=</span> pd.DataFrame(np.column_stack([query_identities, query_filenames]), columns<span class="op">=</span>pd.MultiIndex.from_product([[<span class="st">'query'</span>], [<span class="st">'identity'</span>, <span class="st">'image_name'</span>]]))</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    top_k_df <span class="op">=</span> pd.concat([query_df, preds_df, scores_df, filenames_df], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> accuracy, top_k_df</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>accuracy, top_k_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>top_k_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th colspan="2" data-quarto-table-cell-role="th" data-halign="left">query</th>
+<th colspan="5" data-quarto-table-cell-role="th" data-halign="left">predicted_identity</th>
+<th colspan="5" data-quarto-table-cell-role="th" data-halign="left">score</th>
+<th colspan="5" data-quarto-table-cell-role="th" data-halign="left">predicted_image_name</th>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">identity</th>
+<th data-quarto-table-cell-role="th">image_name</th>
+<th data-quarto-table-cell-role="th">1</th>
+<th data-quarto-table-cell-role="th">2</th>
+<th data-quarto-table-cell-role="th">3</th>
+<th data-quarto-table-cell-role="th">4</th>
+<th data-quarto-table-cell-role="th">5</th>
+<th data-quarto-table-cell-role="th">1</th>
+<th data-quarto-table-cell-role="th">2</th>
+<th data-quarto-table-cell-role="th">3</th>
+<th data-quarto-table-cell-role="th">4</th>
+<th data-quarto-table-cell-role="th">5</th>
+<th data-quarto-table-cell-role="th">1</th>
+<th data-quarto-table-cell-role="th">2</th>
+<th data-quarto-table-cell-role="th">3</th>
+<th data-quarto-table-cell-role="th">4</th>
+<th data-quarto-table-cell-role="th">5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+<td>4</td>
+<td>9</td>
+<td>5</td>
+<td>31</td>
+<td>28</td>
+<td>0.724900</td>
+<td>0.669199</td>
+<td>0.664537</td>
+<td>0.648287</td>
+<td>0.644597</td>
+<td>IMG_2546.JPEG</td>
+<td>IMG_2560.JPEG</td>
+<td>IMG_2573.JPEG</td>
+<td>IMG_2517.JPEG</td>
+<td>IMG_2489.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>28</td>
+<td>IMG_2488.JPEG</td>
+<td>28</td>
+<td>30</td>
+<td>8</td>
+<td>54</td>
+<td>27</td>
+<td>0.732097</td>
+<td>0.706550</td>
+<td>0.674637</td>
+<td>0.660041</td>
+<td>0.657237</td>
+<td>IMG_2490.JPEG</td>
+<td>IMG_2483.JPEG</td>
+<td>IMG_2586.JPEG</td>
+<td>IMG_2404.JPEG</td>
+<td>IMG_2453.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>31</td>
+<td>IMG_2521.JPEG</td>
+<td>31</td>
+<td>25</td>
+<td>41</td>
+<td>71</td>
+<td>9</td>
+<td>0.832421</td>
+<td>0.702387</td>
+<td>0.696077</td>
+<td>0.688054</td>
+<td>0.666718</td>
+<td>IMG_2519.JPEG</td>
+<td>IMG_2631.JPEG</td>
+<td>IMG_2392.JPEG</td>
+<td>IMG_3886.JPEG</td>
+<td>IMG_2561.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>39</td>
+<td>IMG_2321.JPEG</td>
+<td>28</td>
+<td>39</td>
+<td>57</td>
+<td>181</td>
+<td>4</td>
+<td>0.534586</td>
+<td>0.528971</td>
+<td>0.525703</td>
+<td>0.508656</td>
+<td>0.504368</td>
+<td>IMG_2486.JPEG</td>
+<td>IMG_2320.JPEG</td>
+<td>IMG_2349.JPEG</td>
+<td>IMG_2274.JPEG</td>
+<td>IMG_2546.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>41</td>
+<td>IMG_2391.JPEG</td>
+<td>41</td>
+<td>28</td>
+<td>50</td>
+<td>37</td>
+<td>31</td>
+<td>0.656017</td>
+<td>0.608335</td>
+<td>0.595848</td>
+<td>0.593409</td>
+<td>0.590966</td>
+<td>IMG_2392.JPEG</td>
+<td>IMG_2493.JPEG</td>
+<td>IMG_2408.JPEG</td>
+<td>IMG_2471.JPEG</td>
+<td>IMG_2517.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>44</td>
+<td>IMG_2338.JPEG</td>
+<td>47</td>
+<td>57</td>
+<td>46</td>
+<td>29</td>
+<td>22</td>
+<td>0.528066</td>
+<td>0.525686</td>
+<td>0.524369</td>
+<td>0.515956</td>
+<td>0.514654</td>
+<td>IMG_2358.JPEG</td>
+<td>IMG_2349.JPEG</td>
+<td>IMG_2330.JPEG</td>
+<td>IMG_2498.JPEG</td>
+<td>IMG_2680.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>50</td>
+<td>IMG_2411.JPEG</td>
+<td>50</td>
+<td>28</td>
+<td>84</td>
+<td>30</td>
+<td>16</td>
+<td>0.677512</td>
+<td>0.601997</td>
+<td>0.594606</td>
+<td>0.591716</td>
+<td>0.577166</td>
+<td>IMG_2410.JPEG</td>
+<td>IMG_2489.JPEG</td>
+<td>IMG_2859.JPEG</td>
+<td>IMG_2481.JPEG</td>
+<td>IMG_2660.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>54</td>
+<td>IMG_2399.JPEG</td>
+<td>54</td>
+<td>21</td>
+<td>13</td>
+<td>14</td>
+<td>31</td>
+<td>0.753215</td>
+<td>0.690221</td>
+<td>0.655265</td>
+<td>0.653530</td>
+<td>0.646022</td>
+<td>IMG_2403.JPEG</td>
+<td>IMG_2690.JPEG</td>
+<td>IMG_2601.JPEG</td>
+<td>IMG_2613.JPEG</td>
+<td>IMG_2516.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>57</td>
+<td>IMG_2352.JPEG</td>
+<td>46</td>
+<td>119</td>
+<td>50</td>
+<td>57</td>
+<td>9</td>
+<td>0.438227</td>
+<td>0.426473</td>
+<td>0.423811</td>
+<td>0.387412</td>
+<td>0.384438</td>
+<td>IMG_2330.JPEG</td>
+<td>IMG_3168.JPEG</td>
+<td>IMG_2406.JPEG</td>
+<td>IMG_2349.JPEG</td>
+<td>IMG_2558.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>59</td>
+<td>IMG_2720.JPEG</td>
+<td>59</td>
+<td>41</td>
+<td>28</td>
+<td>178</td>
+<td>181</td>
+<td>0.774729</td>
+<td>0.682074</td>
+<td>0.674501</td>
+<td>0.672033</td>
+<td>0.661656</td>
+<td>IMG_2718.JPEG</td>
+<td>IMG_2392.JPEG</td>
+<td>IMG_2487.JPEG</td>
+<td>IMG_3383.JPEG</td>
+<td>IMG_2275.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>68</td>
+<td>IMG_3809.JPEG</td>
+<td>68</td>
+<td>199</td>
+<td>197</td>
+<td>202</td>
+<td>12</td>
+<td>0.378799</td>
+<td>0.353345</td>
+<td>0.351397</td>
+<td>0.339890</td>
+<td>0.330514</td>
+<td>IMG_3805.JPEG</td>
+<td>IMG_3594.JPEG</td>
+<td>IMG_3607.JPEG</td>
+<td>IMG_3615.JPEG</td>
+<td>IMG_2677.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>71</td>
+<td>IMG_3884.JPEG</td>
+<td>71</td>
+<td>31</td>
+<td>41</td>
+<td>119</td>
+<td>178</td>
+<td>0.717556</td>
+<td>0.677027</td>
+<td>0.647288</td>
+<td>0.647048</td>
+<td>0.643674</td>
+<td>IMG_3885.JPEG</td>
+<td>IMG_2520.JPEG</td>
+<td>IMG_2392.JPEG</td>
+<td>IMG_3170.JPEG</td>
+<td>IMG_3383.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>84</td>
+<td>IMG_2858.JPEG</td>
+<td>84</td>
+<td>47</td>
+<td>46</td>
+<td>28</td>
+<td>50</td>
+<td>0.607246</td>
+<td>0.581266</td>
+<td>0.546994</td>
+<td>0.546238</td>
+<td>0.540468</td>
+<td>IMG_2859.JPEG</td>
+<td>IMG_2358.JPEG</td>
+<td>IMG_2331.JPEG</td>
+<td>IMG_2487.JPEG</td>
+<td>IMG_2407.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>85</td>
+<td>IMG_2875.JPEG</td>
+<td>8</td>
+<td>28</td>
+<td>25</td>
+<td>85</td>
+<td>89</td>
+<td>0.636757</td>
+<td>0.610658</td>
+<td>0.609270</td>
+<td>0.603354</td>
+<td>0.602769</td>
+<td>IMG_2585.JPEG</td>
+<td>IMG_2490.JPEG</td>
+<td>IMG_2631.JPEG</td>
+<td>IMG_2874.JPEG</td>
+<td>IMG_2838.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">14</td>
+<td>89</td>
+<td>IMG_2836.JPEG</td>
+<td>117</td>
+<td>89</td>
+<td>47</td>
+<td>119</td>
+<td>104</td>
+<td>0.617693</td>
+<td>0.612058</td>
+<td>0.597806</td>
+<td>0.574640</td>
+<td>0.564394</td>
+<td>IMG_3099.JPEG</td>
+<td>IMG_2837.JPEG</td>
+<td>IMG_2358.JPEG</td>
+<td>IMG_3168.JPEG</td>
+<td>IMG_3139.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">15</td>
+<td>92</td>
+<td>IMG_2801.JPEG</td>
+<td>92</td>
+<td>139</td>
+<td>13</td>
+<td>16</td>
+<td>54</td>
+<td>0.699239</td>
+<td>0.619799</td>
+<td>0.594736</td>
+<td>0.592516</td>
+<td>0.589169</td>
+<td>IMG_2802.JPEG</td>
+<td>IMG_2909.JPEG</td>
+<td>IMG_2601.JPEG</td>
+<td>IMG_2656.JPEG</td>
+<td>IMG_2403.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>102</td>
+<td>IMG_3556.JPEG</td>
+<td>102</td>
+<td>197</td>
+<td>12</td>
+<td>139</td>
+<td>199</td>
+<td>0.853831</td>
+<td>0.523109</td>
+<td>0.447423</td>
+<td>0.439412</td>
+<td>0.424171</td>
+<td>IMG_3557.JPEG</td>
+<td>IMG_3604.JPEG</td>
+<td>IMG_2677.JPEG</td>
+<td>IMG_2917.JPEG</td>
+<td>IMG_3592.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17</td>
+<td>104</td>
+<td>IMG_3141.JPEG</td>
+<td>104</td>
+<td>117</td>
+<td>119</td>
+<td>139</td>
+<td>191</td>
+<td>0.661345</td>
+<td>0.603737</td>
+<td>0.598735</td>
+<td>0.597498</td>
+<td>0.596887</td>
+<td>IMG_3140.JPEG</td>
+<td>IMG_3103.JPEG</td>
+<td>IMG_3171.JPEG</td>
+<td>IMG_2914.JPEG</td>
+<td>IMG_3664.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">18</td>
+<td>116</td>
+<td>IMG_3109.JPEG</td>
+<td>116</td>
+<td>14</td>
+<td>31</td>
+<td>158</td>
+<td>10</td>
+<td>0.668391</td>
+<td>0.616541</td>
+<td>0.614679</td>
+<td>0.605539</td>
+<td>0.595929</td>
+<td>IMG_3106.JPEG</td>
+<td>IMG_2612.JPEG</td>
+<td>IMG_2517.JPEG</td>
+<td>IMG_3352.JPEG</td>
+<td>IMG_2550.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">19</td>
+<td>117</td>
+<td>IMG_3100.JPEG</td>
+<td>19</td>
+<td>117</td>
+<td>8</td>
+<td>37</td>
+<td>18</td>
+<td>0.698817</td>
+<td>0.682098</td>
+<td>0.666107</td>
+<td>0.659217</td>
+<td>0.657740</td>
+<td>IMG_2646.JPEG</td>
+<td>IMG_3101.JPEG</td>
+<td>IMG_2583.JPEG</td>
+<td>IMG_2469.JPEG</td>
+<td>IMG_2606.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">20</td>
+<td>126</td>
+<td>IMG_3251.JPEG</td>
+<td>126</td>
+<td>139</td>
+<td>104</td>
+<td>59</td>
+<td>119</td>
+<td>0.629487</td>
+<td>0.623958</td>
+<td>0.578767</td>
+<td>0.572536</td>
+<td>0.568722</td>
+<td>IMG_3249.JPEG</td>
+<td>IMG_2911.JPEG</td>
+<td>IMG_3138.JPEG</td>
+<td>IMG_2721.JPEG</td>
+<td>IMG_3172.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">21</td>
+<td>128</td>
+<td>IMG_3178.JPEG</td>
+<td>128</td>
+<td>9</td>
+<td>195</td>
+<td>41</td>
+<td>71</td>
+<td>0.641611</td>
+<td>0.574624</td>
+<td>0.561152</td>
+<td>0.556977</td>
+<td>0.554869</td>
+<td>IMG_3176.JPEG</td>
+<td>IMG_2561.JPEG</td>
+<td>IMG_3657.JPEG</td>
+<td>IMG_2394.JPEG</td>
+<td>IMG_3885.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22</td>
+<td>139</td>
+<td>IMG_2910.JPEG</td>
+<td>139</td>
+<td>183</td>
+<td>104</td>
+<td>116</td>
+<td>119</td>
+<td>0.767497</td>
+<td>0.659423</td>
+<td>0.658805</td>
+<td>0.646301</td>
+<td>0.638824</td>
+<td>IMG_2912.JPEG</td>
+<td>IMG_2291.JPEG</td>
+<td>IMG_3138.JPEG</td>
+<td>IMG_3105.JPEG</td>
+<td>IMG_3172.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">23</td>
+<td>158</td>
+<td>IMG_3350.JPEG</td>
+<td>158</td>
+<td>59</td>
+<td>50</td>
+<td>41</td>
+<td>70</td>
+<td>0.592602</td>
+<td>0.590315</td>
+<td>0.586506</td>
+<td>0.569277</td>
+<td>0.562232</td>
+<td>IMG_3352.JPEG</td>
+<td>IMG_2721.JPEG</td>
+<td>IMG_2408.JPEG</td>
+<td>IMG_2392.JPEG</td>
+<td>IMG_3742.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">24</td>
+<td>165</td>
+<td>IMG_3281.JPEG</td>
+<td>178</td>
+<td>31</td>
+<td>119</td>
+<td>181</td>
+<td>14</td>
+<td>0.515876</td>
+<td>0.510022</td>
+<td>0.508807</td>
+<td>0.498197</td>
+<td>0.489520</td>
+<td>IMG_3383.JPEG</td>
+<td>IMG_2517.JPEG</td>
+<td>IMG_3168.JPEG</td>
+<td>IMG_2278.JPEG</td>
+<td>IMG_2611.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">25</td>
+<td>178</td>
+<td>IMG_3384.JPEG</td>
+<td>178</td>
+<td>25</td>
+<td>9</td>
+<td>71</td>
+<td>41</td>
+<td>0.788880</td>
+<td>0.698863</td>
+<td>0.682134</td>
+<td>0.669123</td>
+<td>0.667040</td>
+<td>IMG_3383.JPEG</td>
+<td>IMG_2631.JPEG</td>
+<td>IMG_2561.JPEG</td>
+<td>IMG_3887.JPEG</td>
+<td>IMG_2392.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">26</td>
+<td>191</td>
+<td>IMG_3663.JPEG</td>
+<td>191</td>
+<td>195</td>
+<td>20</td>
+<td>41</td>
+<td>13</td>
+<td>0.736426</td>
+<td>0.678062</td>
+<td>0.651511</td>
+<td>0.633150</td>
+<td>0.611358</td>
+<td>IMG_3662.JPEG</td>
+<td>IMG_3657.JPEG</td>
+<td>IMG_2618.JPEG</td>
+<td>IMG_2395.JPEG</td>
+<td>IMG_2603.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">27</td>
+<td>195</td>
+<td>IMG_3659.JPEG</td>
+<td>195</td>
+<td>191</td>
+<td>117</td>
+<td>15</td>
+<td>71</td>
+<td>0.726708</td>
+<td>0.674290</td>
+<td>0.601323</td>
+<td>0.592833</td>
+<td>0.583114</td>
+<td>IMG_3660.JPEG</td>
+<td>IMG_3664.JPEG</td>
+<td>IMG_3103.JPEG</td>
+<td>IMG_2641.JPEG</td>
+<td>IMG_3886.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">28</td>
+<td>197</td>
+<td>IMG_3608.JPEG</td>
+<td>102</td>
+<td>11</td>
+<td>199</td>
+<td>197</td>
+<td>27</td>
+<td>0.370432</td>
+<td>0.368753</td>
+<td>0.357455</td>
+<td>0.354092</td>
+<td>0.349813</td>
+<td>IMG_3557.JPEG</td>
+<td>IMG_2576.JPEG</td>
+<td>IMG_3591.JPEG</td>
+<td>IMG_3606.JPEG</td>
+<td>IMG_2452.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">29</td>
+<td>202</td>
+<td>IMG_3616.JPEG</td>
+<td>202</td>
+<td>197</td>
+<td>199</td>
+<td>126</td>
+<td>26</td>
+<td>0.512071</td>
+<td>0.418952</td>
+<td>0.408919</td>
+<td>0.394108</td>
+<td>0.393312</td>
+<td>IMG_3617.JPEG</td>
+<td>IMG_3604.JPEG</td>
+<td>IMG_3595.JPEG</td>
+<td>IMG_3247.JPEG</td>
+<td>IMG_2692.JPEG</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="dd7c0b14" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calculate_map(df, query_col, feature_col, database_feature_col<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Calculate mean Average Precision (mAP) for retrieval task.</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="co">        df: DataFrame containing features and metadata</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">        query_col: Column name indicating query samples (boolean)</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">        feature_col: Column name containing features for queries</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co">        database_feature_col: Column name containing features for database (if different from feature_col)</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="co">        mAP: Mean Average Precision score</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> sklearn.metrics <span class="im">import</span> average_precision_score</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    query_df <span class="op">=</span> df[df[query_col] <span class="op">==</span> <span class="va">True</span>].reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    database_df <span class="op">=</span> df[df[query_col] <span class="op">!=</span> <span class="va">True</span>].reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    query_dataset <span class="op">=</span> FeatureDataset(features<span class="op">=</span>query_df[feature_col].tolist(), metadata<span class="op">=</span>query_df)</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    database_dataset <span class="op">=</span> FeatureDataset(features<span class="op">=</span>database_df[database_feature_col <span class="cf">if</span> database_feature_col <span class="cf">else</span> feature_col].tolist(), metadata<span class="op">=</span>database_df)</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>    similarity <span class="op">=</span> similarity_function(query_dataset, database_dataset)</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>    aps <span class="op">=</span> []</span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, query_label <span class="kw">in</span> <span class="bu">enumerate</span>(query_dataset.labels_string):</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Get similarity scores for this query</span></span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>        scores <span class="op">=</span> similarity[i]</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Create binary relevance labels (1 if same identity, 0 otherwise)</span></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>        relevance <span class="op">=</span> (database_dataset.labels_string <span class="op">==</span> query_label).astype(<span class="bu">int</span>)</span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Calculate Average Precision for this query</span></span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> np.<span class="bu">sum</span>(relevance) <span class="op">&gt;</span> <span class="dv">0</span>:  <span class="co"># Only if there are relevant items</span></span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>            ap <span class="op">=</span> average_precision_score(relevance, scores)</span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>            aps.append(ap)</span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.mean(aps) <span class="cf">if</span> aps <span class="cf">else</span> <span class="fl">0.0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="bd29ac88" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>test_map <span class="op">=</span> calculate_map(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features'</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>test_map</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>0.4900472748367101</code></pre>
+</div>
+</div>
+<div id="09fbe8f3" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate mAP for all your configurations</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Hard test queries</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>map_mega_hard <span class="op">=</span> calculate_map(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features'</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>map_miewid_hard <span class="op">=</span> calculate_map(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features'</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>map_mega_hard_cropped <span class="op">=</span> calculate_map(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features_cropped'</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>map_miewid_hard_cropped <span class="op">=</span> calculate_map(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features_cropped'</span>)</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>map_mega_hard_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features'</span>, <span class="st">'mega_features_rotated'</span>)</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>map_miewid_hard_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features'</span>, <span class="st">'miewid_features_rotated'</span>)</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>map_mega_hard_cropped_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features_cropped'</span>, <span class="st">'mega_features_cropped_rotated'</span>)</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>map_miewid_hard_cropped_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, <span class="st">'miewid_features_cropped_rotated'</span>)</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Random test queries</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>map_mega_random <span class="op">=</span> calculate_map(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features'</span>)</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>map_miewid_random <span class="op">=</span> calculate_map(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features'</span>)</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>map_mega_random_cropped <span class="op">=</span> calculate_map(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features_cropped'</span>)</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>map_miewid_random_cropped <span class="op">=</span> calculate_map(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features_cropped'</span>)</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>map_mega_random_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features'</span>, <span class="st">'mega_features_rotated'</span>)</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>map_miewid_random_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features'</span>, <span class="st">'miewid_features_rotated'</span>)</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>map_mega_random_cropped_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features_cropped'</span>, <span class="st">'mega_features_cropped_rotated'</span>)</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>map_miewid_random_cropped_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, <span class="st">'miewid_features_cropped_rotated'</span>)</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Least similar test queries</span></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>map_mega_least <span class="op">=</span> calculate_map(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features'</span>)</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>map_miewid_least <span class="op">=</span> calculate_map(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features'</span>)</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>map_mega_least_cropped <span class="op">=</span> calculate_map(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features_cropped'</span>)</span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>map_miewid_least_cropped <span class="op">=</span> calculate_map(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features_cropped'</span>)</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>map_mega_least_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features'</span>, <span class="st">'mega_features_rotated'</span>)</span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>map_miewid_least_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features'</span>, <span class="st">'miewid_features_rotated'</span>)</span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>map_mega_least_cropped_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features_cropped'</span>, <span class="st">'mega_features_cropped_rotated'</span>)</span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>map_miewid_least_cropped_rotated <span class="op">=</span> calculate_map(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, <span class="st">'miewid_features_cropped_rotated'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="3c46e9a9" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_hard, acc_mega_top_1_hard_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_hard, acc_mega_top_5_hard_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_hard, acc_miewid_top_1_hard_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_hard, acc_miewid_top_5_hard_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="2a0bae29" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_hard_cropped, acc_mega_top_1_hard_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_hard_cropped, acc_mega_top_5_hard_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_hard_cropped, acc_miewid_top_1_hard_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_hard_cropped, acc_miewid_top_5_hard_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="7c95867e" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_hard_rotated, acc_mega_top_1_hard_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_rotated'</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_hard_rotated, acc_mega_top_5_hard_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_rotated'</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_hard_rotated, acc_miewid_top_1_hard_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_rotated'</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_hard_rotated, acc_miewid_top_5_hard_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_rotated'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="69a3bb45" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_hard_cropped_rotated, acc_mega_top_1_hard_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_cropped_rotated'</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_hard_cropped_rotated, acc_mega_top_5_hard_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_cropped_rotated'</span>)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_hard_cropped_rotated, acc_miewid_top_1_hard_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_cropped_rotated'</span>)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_hard_cropped_rotated, acc_miewid_top_5_hard_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_hard_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_cropped_rotated'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="4403e3ba" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_random, acc_mega_top_1_random_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_random, acc_mega_top_5_random_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_random, acc_miewid_top_1_random_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_random, acc_miewid_top_5_random_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="83ece64f" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_random_cropped, acc_mega_top_1_random_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_random_cropped, acc_mega_top_5_random_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_random_cropped, acc_miewid_top_1_random_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_random_cropped, acc_miewid_top_5_random_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="2d6b2b79" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_random_rotated, acc_mega_top_1_random_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_rotated'</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_random_rotated, acc_mega_top_5_random_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_rotated'</span>)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_random_rotated, acc_miewid_top_1_random_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_rotated'</span>)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_random_rotated, acc_miewid_top_5_random_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_rotated'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="8103c31a" class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_random_cropped_rotated, acc_mega_top_1_random_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_cropped_rotated'</span>)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_random_cropped_rotated, acc_mega_top_5_random_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_cropped_rotated'</span>)</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_random_cropped_rotated, acc_miewid_top_1_random_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_cropped_rotated'</span>)</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_random_cropped_rotated, acc_miewid_top_5_random_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_random_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_cropped_rotated'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="b6ff4c1b" class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_least, acc_mega_top_1_least_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_least, acc_mega_top_5_least_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_least, acc_miewid_top_1_least_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_least, acc_miewid_top_5_least_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="e1274c14" class="cell" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_least_cropped, acc_mega_top_1_least_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_least_cropped, acc_mega_top_5_least_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_least_cropped, acc_miewid_top_1_least_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_least_cropped, acc_miewid_top_5_least_cropped_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="e8bef0cd" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_least_rotated, acc_mega_top_1_least_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_rotated'</span>)</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_least_rotated, acc_mega_top_5_least_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_rotated'</span>)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_least_rotated, acc_miewid_top_1_least_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_rotated'</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_least_rotated, acc_miewid_top_5_least_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_rotated'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="1747b1c1" class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>acc_mega_top_1_least_cropped_rotated, acc_mega_top_1_least_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_cropped_rotated'</span>)</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>acc_mega_top_5_least_cropped_rotated, acc_mega_top_5_least_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'mega_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'mega_features_cropped_rotated'</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_1_least_cropped_rotated, acc_miewid_top_1_least_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">1</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_cropped_rotated'</span>)</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>acc_miewid_top_5_least_cropped_rotated, acc_miewid_top_5_least_cropped_rotated_df <span class="op">=</span> get_top_k_accuracy(df, <span class="st">'is_least_similar_test_query'</span>, <span class="st">'miewid_features_cropped'</span>, k<span class="op">=</span><span class="dv">5</span>, database_feature_col<span class="op">=</span><span class="st">'miewid_features_cropped_rotated'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="0917af4c" class="cell" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Splits</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>random <span class="op">=</span> <span class="st">'Random'</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>least_similar <span class="op">=</span> <span class="st">'Least Similar'</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>hard <span class="op">=</span> <span class="st">'Hard'</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Debiasing</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>original <span class="op">=</span> <span class="st">'Original'</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>bg_removed <span class="op">=</span> <span class="st">'Background Removed'</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>rotated <span class="op">=</span> <span class="st">'Rotated'</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>bg_removed_rotated <span class="op">=</span> <span class="st">'Background Removed + Rotated'</span></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Models</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>mega <span class="op">=</span> <span class="st">'MegaDescriptor'</span></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>miewid <span class="op">=</span> <span class="st">'MiewID'</span></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Metrics</span></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>top_1 <span class="op">=</span> <span class="st">'Top-1'</span></span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>top_5 <span class="op">=</span> <span class="st">'Top-5'</span></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>mAP <span class="op">=</span> <span class="st">'mAP'</span></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Create hierarchical index for rows</span></span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a>row_idx <span class="op">=</span> pd.MultiIndex.from_product([</span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>    [random, least_similar, hard],</span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a>    [original, bg_removed, rotated, bg_removed_rotated]</span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a>], names<span class="op">=</span>[<span class="st">'split'</span>, <span class="st">'debiasing'</span>])</span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Create hierarchical columns</span></span>
+<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a>col_idx <span class="op">=</span> pd.MultiIndex.from_product([</span>
+<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a>    [mega, miewid], </span>
+<span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a>    [top_1, top_5, mAP]</span>
+<span id="cb35-31"><a href="#cb35-31" aria-hidden="true" tabindex="-1"></a>], names<span class="op">=</span>[<span class="st">'model'</span>, <span class="st">'metric'</span>])</span>
+<span id="cb35-32"><a href="#cb35-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-33"><a href="#cb35-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Update your results DataFrame to include mAP</span></span>
+<span id="cb35-34"><a href="#cb35-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Add mAP column to your existing results_df</span></span>
+<span id="cb35-35"><a href="#cb35-35" aria-hidden="true" tabindex="-1"></a>data_with_map <span class="op">=</span> [</span>
+<span id="cb35-36"><a href="#cb35-36" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Random split</span></span>
+<span id="cb35-37"><a href="#cb35-37" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_random, acc_mega_top_5_random, map_mega_random, acc_miewid_top_1_random, acc_miewid_top_5_random, map_miewid_random],</span>
+<span id="cb35-38"><a href="#cb35-38" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_random_cropped, acc_mega_top_5_random_cropped, map_mega_random_cropped, acc_miewid_top_1_random_cropped, acc_miewid_top_5_random_cropped, map_miewid_random_cropped],</span>
+<span id="cb35-39"><a href="#cb35-39" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_random_rotated, acc_mega_top_5_random_rotated, map_mega_random_rotated, acc_miewid_top_1_random_rotated, acc_miewid_top_5_random_rotated, map_miewid_random_rotated],</span>
+<span id="cb35-40"><a href="#cb35-40" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_random_cropped_rotated, acc_mega_top_5_random_cropped_rotated, map_mega_random_cropped_rotated, acc_miewid_top_1_random_cropped_rotated, acc_miewid_top_5_random_cropped_rotated, map_miewid_random_cropped_rotated],</span>
+<span id="cb35-41"><a href="#cb35-41" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-42"><a href="#cb35-42" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Least similar split</span></span>
+<span id="cb35-43"><a href="#cb35-43" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_least, acc_mega_top_5_least, map_mega_least, acc_miewid_top_1_least, acc_miewid_top_5_least, map_miewid_least],</span>
+<span id="cb35-44"><a href="#cb35-44" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_least_cropped, acc_mega_top_5_least_cropped, map_mega_least_cropped, acc_miewid_top_1_least_cropped, acc_miewid_top_5_least_cropped, map_miewid_least_cropped],</span>
+<span id="cb35-45"><a href="#cb35-45" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_least_rotated, acc_mega_top_5_least_rotated, map_mega_least_rotated, acc_miewid_top_1_least_rotated, acc_miewid_top_5_least_rotated, map_miewid_least_rotated],</span>
+<span id="cb35-46"><a href="#cb35-46" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_least_cropped_rotated, acc_mega_top_5_least_cropped_rotated, map_mega_least_cropped_rotated, acc_miewid_top_1_least_cropped_rotated, acc_miewid_top_5_least_cropped_rotated, map_miewid_least_cropped_rotated],</span>
+<span id="cb35-47"><a href="#cb35-47" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb35-48"><a href="#cb35-48" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Hard split</span></span>
+<span id="cb35-49"><a href="#cb35-49" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_hard, acc_mega_top_5_hard, map_mega_hard, acc_miewid_top_1_hard, acc_miewid_top_5_hard, map_miewid_hard],</span>
+<span id="cb35-50"><a href="#cb35-50" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_hard_cropped, acc_mega_top_5_hard_cropped, map_mega_hard_cropped, acc_miewid_top_1_hard_cropped, acc_miewid_top_5_hard_cropped, map_miewid_hard_cropped],</span>
+<span id="cb35-51"><a href="#cb35-51" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_hard_rotated, acc_mega_top_5_hard_rotated, map_mega_hard_rotated, acc_miewid_top_1_hard_rotated, acc_miewid_top_5_hard_rotated, map_miewid_hard_rotated],</span>
+<span id="cb35-52"><a href="#cb35-52" aria-hidden="true" tabindex="-1"></a>    [acc_mega_top_1_hard_cropped_rotated, acc_mega_top_5_hard_cropped_rotated, map_mega_hard_cropped_rotated, acc_miewid_top_1_hard_cropped_rotated, acc_miewid_top_5_hard_cropped_rotated, map_miewid_hard_cropped_rotated]</span>
+<span id="cb35-53"><a href="#cb35-53" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb35-54"><a href="#cb35-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-55"><a href="#cb35-55" aria-hidden="true" tabindex="-1"></a><span class="co"># Create hierarchical columns including mAP</span></span>
+<span id="cb35-56"><a href="#cb35-56" aria-hidden="true" tabindex="-1"></a>col_idx_with_map <span class="op">=</span> pd.MultiIndex.from_product([</span>
+<span id="cb35-57"><a href="#cb35-57" aria-hidden="true" tabindex="-1"></a>    [mega, miewid], </span>
+<span id="cb35-58"><a href="#cb35-58" aria-hidden="true" tabindex="-1"></a>    [top_1, top_5, <span class="st">'mAP'</span>]</span>
+<span id="cb35-59"><a href="#cb35-59" aria-hidden="true" tabindex="-1"></a>], names<span class="op">=</span>[<span class="st">'model'</span>, <span class="st">'metric'</span>])</span>
+<span id="cb35-60"><a href="#cb35-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-61"><a href="#cb35-61" aria-hidden="true" tabindex="-1"></a>results_df_with_map <span class="op">=</span> pd.DataFrame(data_with_map, index<span class="op">=</span>row_idx, columns<span class="op">=</span>col_idx_with_map)</span>
+<span id="cb35-62"><a href="#cb35-62" aria-hidden="true" tabindex="-1"></a>results_df_with_map.to_csv(artifacts_path<span class="op">/</span><span class="st">'baseline_results.csv'</span>, index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb35-63"><a href="#cb35-63" aria-hidden="true" tabindex="-1"></a>results_df_with_map</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="30">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">model</th>
+<th colspan="3" data-quarto-table-cell-role="th" data-halign="left">MegaDescriptor</th>
+<th colspan="3" data-quarto-table-cell-role="th" data-halign="left">MiewID</th>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">metric</th>
+<th data-quarto-table-cell-role="th">Top-1</th>
+<th data-quarto-table-cell-role="th">Top-5</th>
+<th data-quarto-table-cell-role="th">mAP</th>
+<th data-quarto-table-cell-role="th">Top-1</th>
+<th data-quarto-table-cell-role="th">Top-5</th>
+<th data-quarto-table-cell-role="th">mAP</th>
+</tr>
+<tr class="header">
+<th data-quarto-table-cell-role="th">split</th>
+<th data-quarto-table-cell-role="th">debiasing</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td rowspan="4" data-quarto-table-cell-role="th" data-valign="top">Random</td>
+<td data-quarto-table-cell-role="th">Original</td>
+<td>0.933333</td>
+<td>1.000000</td>
+<td>0.770641</td>
+<td>0.933333</td>
+<td>0.966667</td>
+<td>0.849536</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed</td>
+<td>0.800000</td>
+<td>0.933333</td>
+<td>0.658465</td>
+<td>0.866667</td>
+<td>0.966667</td>
+<td>0.720268</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Rotated</td>
+<td>0.166667</td>
+<td>0.733333</td>
+<td>0.224212</td>
+<td>0.033333</td>
+<td>0.366667</td>
+<td>0.095128</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed + Rotated</td>
+<td>0.233333</td>
+<td>0.566667</td>
+<td>0.211374</td>
+<td>0.066667</td>
+<td>0.233333</td>
+<td>0.094184</td>
+</tr>
+<tr class="odd">
+<td rowspan="4" data-quarto-table-cell-role="th" data-valign="top">Least Similar</td>
+<td data-quarto-table-cell-role="th">Original</td>
+<td>0.566667</td>
+<td>0.900000</td>
+<td>0.497808</td>
+<td>0.766667</td>
+<td>0.900000</td>
+<td>0.570848</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed</td>
+<td>0.366667</td>
+<td>0.600000</td>
+<td>0.289787</td>
+<td>0.366667</td>
+<td>0.600000</td>
+<td>0.196391</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Rotated</td>
+<td>0.133333</td>
+<td>0.600000</td>
+<td>0.217086</td>
+<td>0.133333</td>
+<td>0.366667</td>
+<td>0.133758</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed + Rotated</td>
+<td>0.166667</td>
+<td>0.400000</td>
+<td>0.122747</td>
+<td>0.033333</td>
+<td>0.200000</td>
+<td>0.063122</td>
+</tr>
+<tr class="odd">
+<td rowspan="4" data-quarto-table-cell-role="th" data-valign="top">Hard</td>
+<td data-quarto-table-cell-role="th">Original</td>
+<td>0.633333</td>
+<td>0.833333</td>
+<td>0.459626</td>
+<td>0.733333</td>
+<td>0.933333</td>
+<td>0.490047</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed</td>
+<td>0.466667</td>
+<td>0.600000</td>
+<td>0.303956</td>
+<td>0.466667</td>
+<td>0.666667</td>
+<td>0.279974</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Rotated</td>
+<td>0.166667</td>
+<td>0.566667</td>
+<td>0.181456</td>
+<td>0.033333</td>
+<td>0.266667</td>
+<td>0.075120</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed + Rotated</td>
+<td>0.066667</td>
+<td>0.333333</td>
+<td>0.113587</td>
+<td>0.000000</td>
+<td>0.066667</td>
+<td>0.041813</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div id="83250b29" class="cell" data-execution_count="31">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Save results as LaTeX table</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>latex_table <span class="op">=</span> results_df_with_map.to_latex(</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    float_format<span class="op">=</span><span class="kw">lambda</span> x: <span class="st">'</span><span class="sc">{:.1f}</span><span class="er">\</span><span class="st">%'</span>.<span class="bu">format</span>(x<span class="op">*</span><span class="dv">100</span>), <span class="co"># Convert to percentages with 1 decimal</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    bold_rows<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    multicolumn<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    multicolumn_format<span class="op">=</span><span class="st">'c'</span>,</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    multirow<span class="op">=</span><span class="va">True</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(artifacts_path<span class="op">/</span><span class="st">'baseline_results.tex'</span>, <span class="st">'w'</span>) <span class="im">as</span> f:</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    f.write(latex_table)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="f0b410c1" class="cell" data-execution_count="32">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>all_results_df <span class="op">=</span> pd.concat([</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_hard_df.assign(split<span class="op">=</span>hard, model<span class="op">=</span>mega, debiasing<span class="op">=</span>original),</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_least_df.assign(split<span class="op">=</span>least_similar, model<span class="op">=</span>mega, debiasing<span class="op">=</span>original), </span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_random_df.assign(split<span class="op">=</span>random, model<span class="op">=</span>mega, debiasing<span class="op">=</span>original),</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_hard_df.assign(split<span class="op">=</span>hard, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>original),</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_least_df.assign(split<span class="op">=</span>least_similar, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>original),</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_random_df.assign(split<span class="op">=</span>random, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>original),</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_hard_cropped_df.assign(split<span class="op">=</span>hard, model<span class="op">=</span>mega, debiasing<span class="op">=</span>bg_removed),</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_least_cropped_df.assign(split<span class="op">=</span>least_similar, model<span class="op">=</span>mega, debiasing<span class="op">=</span>bg_removed), </span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_random_cropped_df.assign(split<span class="op">=</span>random, model<span class="op">=</span>mega, debiasing<span class="op">=</span>bg_removed),</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_hard_cropped_df.assign(split<span class="op">=</span>hard, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>bg_removed),</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_least_cropped_df.assign(split<span class="op">=</span>least_similar, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>bg_removed), </span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_random_cropped_df.assign(split<span class="op">=</span>random, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>bg_removed),</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_hard_rotated_df.assign(split<span class="op">=</span>hard, model<span class="op">=</span>mega, debiasing<span class="op">=</span>rotated),</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_least_rotated_df.assign(split<span class="op">=</span>least_similar, model<span class="op">=</span>mega, debiasing<span class="op">=</span>rotated),</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_random_rotated_df.assign(split<span class="op">=</span>random, model<span class="op">=</span>mega, debiasing<span class="op">=</span>rotated),</span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_hard_rotated_df.assign(split<span class="op">=</span>hard, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>rotated),</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_least_rotated_df.assign(split<span class="op">=</span>least_similar, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>rotated),</span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_random_rotated_df.assign(split<span class="op">=</span>random, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>rotated),</span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_hard_cropped_rotated_df.assign(split<span class="op">=</span>hard, model<span class="op">=</span>mega, debiasing<span class="op">=</span>bg_removed_rotated),</span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_least_cropped_rotated_df.assign(split<span class="op">=</span>least_similar, model<span class="op">=</span>mega, debiasing<span class="op">=</span>bg_removed_rotated),</span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>    acc_mega_top_5_random_cropped_rotated_df.assign(split<span class="op">=</span>random, model<span class="op">=</span>mega, debiasing<span class="op">=</span>bg_removed_rotated),</span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_hard_cropped_rotated_df.assign(split<span class="op">=</span>hard, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>bg_removed_rotated),</span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_least_cropped_rotated_df.assign(split<span class="op">=</span>least_similar, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>bg_removed_rotated),</span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a>    acc_miewid_top_5_random_cropped_rotated_df.assign(split<span class="op">=</span>random, model<span class="op">=</span>miewid, debiasing<span class="op">=</span>bg_removed_rotated),</span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a>all_results_df.to_csv(artifacts_path<span class="op">/</span><span class="st">'baseline_predictions.csv'</span>, index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb37-29"><a href="#cb37-29" aria-hidden="true" tabindex="-1"></a>all_results_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="32">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th colspan="2" data-quarto-table-cell-role="th" data-halign="left">query</th>
+<th colspan="5" data-quarto-table-cell-role="th" data-halign="left">predicted_identity</th>
+<th colspan="5" data-quarto-table-cell-role="th" data-halign="left">score</th>
+<th colspan="5" data-quarto-table-cell-role="th" data-halign="left">predicted_image_name</th>
+<th data-quarto-table-cell-role="th">split</th>
+<th data-quarto-table-cell-role="th">model</th>
+<th data-quarto-table-cell-role="th">debiasing</th>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">identity</th>
+<th data-quarto-table-cell-role="th">image_name</th>
+<th data-quarto-table-cell-role="th">1</th>
+<th data-quarto-table-cell-role="th">2</th>
+<th data-quarto-table-cell-role="th">3</th>
+<th data-quarto-table-cell-role="th">4</th>
+<th data-quarto-table-cell-role="th">5</th>
+<th data-quarto-table-cell-role="th">1</th>
+<th data-quarto-table-cell-role="th">2</th>
+<th data-quarto-table-cell-role="th">3</th>
+<th data-quarto-table-cell-role="th">4</th>
+<th data-quarto-table-cell-role="th">5</th>
+<th data-quarto-table-cell-role="th">1</th>
+<th data-quarto-table-cell-role="th">2</th>
+<th data-quarto-table-cell-role="th">3</th>
+<th data-quarto-table-cell-role="th">4</th>
+<th data-quarto-table-cell-role="th">5</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+<td>1</td>
+<td>37</td>
+<td>4</td>
+<td>23</td>
+<td>13</td>
+<td>0.630716</td>
+<td>0.556669</td>
+<td>0.555539</td>
+<td>0.549326</td>
+<td>0.548951</td>
+<td>IMG_2534.JPEG</td>
+<td>IMG_2470.JPEG</td>
+<td>IMG_2544.JPEG</td>
+<td>IMG_2627.JPEG</td>
+<td>IMG_2602.JPEG</td>
+<td>Hard</td>
+<td>MegaDescriptor</td>
+<td>Original</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>28</td>
+<td>IMG_2488.JPEG</td>
+<td>8</td>
+<td>1</td>
+<td>41</td>
+<td>25</td>
+<td>28</td>
+<td>0.643836</td>
+<td>0.628767</td>
+<td>0.607394</td>
+<td>0.596339</td>
+<td>0.594998</td>
+<td>IMG_2585.JPEG</td>
+<td>IMG_2534.JPEG</td>
+<td>IMG_2396.JPEG</td>
+<td>IMG_2633.JPEG</td>
+<td>IMG_2491.JPEG</td>
+<td>Hard</td>
+<td>MegaDescriptor</td>
+<td>Original</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>31</td>
+<td>IMG_2521.JPEG</td>
+<td>31</td>
+<td>37</td>
+<td>183</td>
+<td>25</td>
+<td>14</td>
+<td>0.728715</td>
+<td>0.568181</td>
+<td>0.557474</td>
+<td>0.535568</td>
+<td>0.528238</td>
+<td>IMG_2518.JPEG</td>
+<td>IMG_2471.JPEG</td>
+<td>IMG_2290.JPEG</td>
+<td>IMG_2630.JPEG</td>
+<td>IMG_2612.JPEG</td>
+<td>Hard</td>
+<td>MegaDescriptor</td>
+<td>Original</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>39</td>
+<td>IMG_2321.JPEG</td>
+<td>39</td>
+<td>6</td>
+<td>27</td>
+<td>21</td>
+<td>15</td>
+<td>0.664895</td>
+<td>0.523103</td>
+<td>0.517725</td>
+<td>0.506861</td>
+<td>0.506137</td>
+<td>IMG_2320.JPEG</td>
+<td>IMG_2567.JPEG</td>
+<td>IMG_2450.JPEG</td>
+<td>IMG_2690.JPEG</td>
+<td>IMG_2639.JPEG</td>
+<td>Hard</td>
+<td>MegaDescriptor</td>
+<td>Original</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>41</td>
+<td>IMG_2391.JPEG</td>
+<td>28</td>
+<td>46</td>
+<td>50</td>
+<td>41</td>
+<td>47</td>
+<td>0.646801</td>
+<td>0.611557</td>
+<td>0.573471</td>
+<td>0.526165</td>
+<td>0.506458</td>
+<td>IMG_2486.JPEG</td>
+<td>IMG_2331.JPEG</td>
+<td>IMG_2408.JPEG</td>
+<td>IMG_2393.JPEG</td>
+<td>IMG_2358.JPEG</td>
+<td>Hard</td>
+<td>MegaDescriptor</td>
+<td>Original</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">25</td>
+<td>26</td>
+<td>IMG_2692.JPEG</td>
+<td>12</td>
+<td>94</td>
+<td>26</td>
+<td>17</td>
+<td>102</td>
+<td>0.579380</td>
+<td>0.548277</td>
+<td>0.547460</td>
+<td>0.545223</td>
+<td>0.545015</td>
+<td>IMG_2677.JPEG</td>
+<td>IMG_2776.JPEG</td>
+<td>IMG_2693.JPEG</td>
+<td>IMG_2667.JPEG</td>
+<td>IMG_3553.JPEG</td>
+<td>Random</td>
+<td>MiewID</td>
+<td>Background Removed + Rotated</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">26</td>
+<td>27</td>
+<td>IMG_2450.JPEG</td>
+<td>27</td>
+<td>12</td>
+<td>15</td>
+<td>84</td>
+<td>17</td>
+<td>0.576737</td>
+<td>0.565432</td>
+<td>0.554395</td>
+<td>0.545221</td>
+<td>0.535901</td>
+<td>IMG_2449.JPEG</td>
+<td>IMG_2677.JPEG</td>
+<td>IMG_2638.JPEG</td>
+<td>IMG_2862.JPEG</td>
+<td>IMG_2664.JPEG</td>
+<td>Random</td>
+<td>MiewID</td>
+<td>Background Removed + Rotated</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">27</td>
+<td>28</td>
+<td>IMG_2491.JPEG</td>
+<td>102</td>
+<td>87</td>
+<td>17</td>
+<td>12</td>
+<td>199</td>
+<td>0.674675</td>
+<td>0.581423</td>
+<td>0.570964</td>
+<td>0.562446</td>
+<td>0.509154</td>
+<td>IMG_3553.JPEG</td>
+<td>IMG_2826.JPEG</td>
+<td>IMG_2667.JPEG</td>
+<td>IMG_2673.JPEG</td>
+<td>IMG_3593.JPEG</td>
+<td>Random</td>
+<td>MiewID</td>
+<td>Background Removed + Rotated</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">28</td>
+<td>29</td>
+<td>IMG_2495.JPEG</td>
+<td>102</td>
+<td>87</td>
+<td>17</td>
+<td>12</td>
+<td>199</td>
+<td>0.570392</td>
+<td>0.564064</td>
+<td>0.553170</td>
+<td>0.515104</td>
+<td>0.500254</td>
+<td>IMG_3553.JPEG</td>
+<td>IMG_2826.JPEG</td>
+<td>IMG_2663.JPEG</td>
+<td>IMG_2673.JPEG</td>
+<td>IMG_3593.JPEG</td>
+<td>Random</td>
+<td>MiewID</td>
+<td>Background Removed + Rotated</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">29</td>
+<td>30</td>
+<td>IMG_2482.JPEG</td>
+<td>12</td>
+<td>102</td>
+<td>24</td>
+<td>17</td>
+<td>87</td>
+<td>0.542574</td>
+<td>0.483151</td>
+<td>0.480009</td>
+<td>0.474428</td>
+<td>0.474404</td>
+<td>IMG_2677.JPEG</td>
+<td>IMG_3558.JPEG</td>
+<td>IMG_2649.JPEG</td>
+<td>IMG_2664.JPEG</td>
+<td>IMG_2825.JPEG</td>
+<td>Random</td>
+<td>MiewID</td>
+<td>Background Removed + Rotated</td>
+</tr>
+</tbody>
+</table>
+
+<p>720 rows × 20 columns</p>
+</div>
+</div>
+</div>
+<div id="86438ab0" class="cell" data-execution_count="33">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot predictions from acc_mega_top_5_hard_df</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_predictions(query_id, query_image_name, pred_scores, pred_image_ids, pred_image_names, master_df, data_path, query_transforms, pred_transforms, denorm_mean, denorm_std, masked, model_name):</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">1</span>, <span class="dv">6</span>, <span class="dv">1</span>)</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    query_image_path <span class="op">=</span> data_path<span class="op">/</span>master_df.loc[(master_df[<span class="st">'identity'</span>] <span class="op">==</span> <span class="bu">int</span>(query_id)) <span class="op">&amp;</span> (master_df[<span class="st">'image_name'</span>] <span class="op">==</span> query_image_name)][<span class="st">'path'</span>].values[<span class="dv">0</span>]</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> masked:</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>        rle <span class="op">=</span> master_df.loc[(master_df[<span class="st">'identity'</span>] <span class="op">==</span> <span class="bu">int</span>(query_id)) <span class="op">&amp;</span> (master_df[<span class="st">'image_name'</span>] <span class="op">==</span> query_image_name)][<span class="st">'segmentation_mask_rle'</span>].values[<span class="dv">0</span>]</span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>        img <span class="op">=</span> get_cropped_newt(query_image_path, rle)</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>        img <span class="op">=</span> Image.<span class="bu">open</span>(query_image_path)</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Un-normalize for visualization</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>    img_tensor <span class="op">=</span> query_transforms(img)</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Convert lists to tensors for proper broadcasting</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(denorm_mean, <span class="bu">list</span>):</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>        denorm_mean <span class="op">=</span> torch.tensor(denorm_mean).view(<span class="dv">3</span>, <span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(denorm_std, <span class="bu">list</span>):</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>        denorm_std <span class="op">=</span> torch.tensor(denorm_std).view(<span class="dv">3</span>, <span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>    img_tensor <span class="op">=</span> img_tensor <span class="op">*</span> denorm_std <span class="op">+</span> denorm_mean</span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>    plt.imshow(img_tensor.permute(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>))</span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="ss">f'Query</span><span class="ch">\n</span><span class="ss">ID: </span><span class="sc">{</span>query_id<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">8</span>, bbox<span class="op">=</span><span class="bu">dict</span>(facecolor<span class="op">=</span><span class="st">'lightblue'</span>, boxstyle<span class="op">=</span><span class="st">'round'</span>, edgecolor<span class="op">=</span><span class="st">'lightblue'</span>))</span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a>    plt.tick_params(axis<span class="op">=</span><span class="st">'both'</span>, which<span class="op">=</span><span class="st">'both'</span>, bottom<span class="op">=</span><span class="va">False</span>, top<span class="op">=</span><span class="va">False</span>, labelbottom<span class="op">=</span><span class="va">False</span>, right<span class="op">=</span><span class="va">False</span>, left<span class="op">=</span><span class="va">False</span>, labelleft<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="ss">f'</span><span class="sc">{</span>query_image_name<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">6</span>, color<span class="op">=</span><span class="st">'gray'</span>)</span>
+<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="ss">f'</span><span class="sc">{</span>model_name<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">6</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
+<span id="cb38-29"><a href="#cb38-29" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb38-30"><a href="#cb38-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Plot predictions</span></span>
+<span id="cb38-31"><a href="#cb38-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">6</span>):</span>
+<span id="cb38-32"><a href="#cb38-32" aria-hidden="true" tabindex="-1"></a>        plt.subplot(<span class="dv">1</span>, <span class="dv">6</span>, i<span class="op">+</span><span class="dv">1</span>)</span>
+<span id="cb38-33"><a href="#cb38-33" aria-hidden="true" tabindex="-1"></a>        pred_img_path <span class="op">=</span> data_path<span class="op">/</span>master_df.loc[(master_df[<span class="st">'identity'</span>] <span class="op">==</span> <span class="bu">int</span>(pred_image_ids[i])) <span class="op">&amp;</span> (master_df[<span class="st">'image_name'</span>] <span class="op">==</span> pred_image_names[i])][<span class="st">'path'</span>].values[<span class="dv">0</span>]</span>
+<span id="cb38-34"><a href="#cb38-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-35"><a href="#cb38-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> masked:</span>
+<span id="cb38-36"><a href="#cb38-36" aria-hidden="true" tabindex="-1"></a>            rle <span class="op">=</span> master_df.loc[(master_df[<span class="st">'identity'</span>] <span class="op">==</span> <span class="bu">int</span>(pred_image_ids[i])) <span class="op">&amp;</span> (master_df[<span class="st">'image_name'</span>] <span class="op">==</span> pred_image_names[i])][<span class="st">'segmentation_mask_rle'</span>].values[<span class="dv">0</span>]</span>
+<span id="cb38-37"><a href="#cb38-37" aria-hidden="true" tabindex="-1"></a>            img <span class="op">=</span> get_cropped_newt(pred_img_path, rle)</span>
+<span id="cb38-38"><a href="#cb38-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb38-39"><a href="#cb38-39" aria-hidden="true" tabindex="-1"></a>            img <span class="op">=</span> Image.<span class="bu">open</span>(pred_img_path)</span>
+<span id="cb38-40"><a href="#cb38-40" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb38-41"><a href="#cb38-41" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Un-normalize for visualization</span></span>
+<span id="cb38-42"><a href="#cb38-42" aria-hidden="true" tabindex="-1"></a>        img_tensor <span class="op">=</span> pred_transforms(img)</span>
+<span id="cb38-43"><a href="#cb38-43" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb38-44"><a href="#cb38-44" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Convert lists to tensors for proper broadcasting</span></span>
+<span id="cb38-45"><a href="#cb38-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">isinstance</span>(denorm_mean, <span class="bu">list</span>):</span>
+<span id="cb38-46"><a href="#cb38-46" aria-hidden="true" tabindex="-1"></a>            denorm_mean <span class="op">=</span> torch.tensor(denorm_mean).view(<span class="dv">3</span>, <span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb38-47"><a href="#cb38-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">isinstance</span>(denorm_std, <span class="bu">list</span>):</span>
+<span id="cb38-48"><a href="#cb38-48" aria-hidden="true" tabindex="-1"></a>            denorm_std <span class="op">=</span> torch.tensor(denorm_std).view(<span class="dv">3</span>, <span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb38-49"><a href="#cb38-49" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb38-50"><a href="#cb38-50" aria-hidden="true" tabindex="-1"></a>        img_tensor <span class="op">=</span> img_tensor <span class="op">*</span> denorm_std <span class="op">+</span> denorm_mean</span>
+<span id="cb38-51"><a href="#cb38-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-52"><a href="#cb38-52" aria-hidden="true" tabindex="-1"></a>        plt.imshow(img_tensor.permute(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>))</span>
+<span id="cb38-53"><a href="#cb38-53" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb38-54"><a href="#cb38-54" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Color code based on correctness</span></span>
+<span id="cb38-55"><a href="#cb38-55" aria-hidden="true" tabindex="-1"></a>        color <span class="op">=</span> <span class="st">'lightgreen'</span> <span class="cf">if</span> pred_image_ids[i] <span class="op">==</span> query_id <span class="cf">else</span> <span class="st">'lightcoral'</span></span>
+<span id="cb38-56"><a href="#cb38-56" aria-hidden="true" tabindex="-1"></a>        plt.title(<span class="ss">f'Score: </span><span class="sc">{</span>pred_scores[i]<span class="sc">:.2f}</span><span class="ch">\n</span><span class="ss">ID: </span><span class="sc">{</span>pred_image_ids[i]<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">8</span>, bbox<span class="op">=</span><span class="bu">dict</span>(facecolor<span class="op">=</span>color, boxstyle<span class="op">=</span><span class="st">'round'</span>, edgecolor<span class="op">=</span>color))</span>
+<span id="cb38-57"><a href="#cb38-57" aria-hidden="true" tabindex="-1"></a>        plt.tick_params(axis<span class="op">=</span><span class="st">'both'</span>, which<span class="op">=</span><span class="st">'both'</span>, bottom<span class="op">=</span><span class="va">False</span>, top<span class="op">=</span><span class="va">False</span>, labelbottom<span class="op">=</span><span class="va">False</span>, right<span class="op">=</span><span class="va">False</span>, left<span class="op">=</span><span class="va">False</span>, labelleft<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb38-58"><a href="#cb38-58" aria-hidden="true" tabindex="-1"></a>        plt.xlabel(<span class="ss">f'</span><span class="sc">{</span>pred_image_names[i]<span class="sc">}</span><span class="ss">'</span>, fontsize<span class="op">=</span><span class="dv">6</span>, color<span class="op">=</span><span class="st">'gray'</span>)</span>
+<span id="cb38-59"><a href="#cb38-59" aria-hidden="true" tabindex="-1"></a>        <span class="co"># plt.axis('off')</span></span>
+<span id="cb38-60"><a href="#cb38-60" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb38-61"><a href="#cb38-61" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="250691ea" class="cell" data-execution_count="34">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get image paths and plot first example</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>row <span class="op">=</span> acc_mega_top_5_hard_df.iloc[<span class="dv">0</span>]</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">14</span>))</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>plot_predictions(query_id<span class="op">=</span>row[<span class="st">'query'</span>, <span class="st">'identity'</span>], </span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>                query_image_name<span class="op">=</span>row[<span class="st">'query'</span>, <span class="st">'image_name'</span>], </span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>                pred_scores<span class="op">=</span>row[<span class="st">'score'</span>],</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>                pred_image_ids<span class="op">=</span>row[<span class="st">'predicted_identity'</span>], </span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>                pred_image_names<span class="op">=</span>row[<span class="st">'predicted_image_name'</span>], </span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>                master_df<span class="op">=</span>df,</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>                data_path<span class="op">=</span>dataset_path,</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>                query_transforms<span class="op">=</span>mega_transform,</span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>                pred_transforms<span class="op">=</span>mega_transform,</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>                denorm_mean<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>                denorm_std<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>                masked<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>                model_name<span class="op">=</span>mega)</span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.savefig(results_preview_path/'prediction_example.svg', format='svg', dpi=300, bbox_inches='tight')</span></span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a><span class="co"># plt.close()</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="07_baselines_files/figure-html/cell-36-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="cb41c399" class="cell" data-execution_count="35">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>dict_of_pred_transforms <span class="op">=</span> {</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'</span><span class="sc">{</span>mega<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>original<span class="sc">}</span><span class="ss">'</span>: mega_transform,</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'</span><span class="sc">{</span>miewid<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>original<span class="sc">}</span><span class="ss">'</span>: miewid_transform,</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'</span><span class="sc">{</span>mega<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>bg_removed<span class="sc">}</span><span class="ss">'</span>: mega_transform,</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'</span><span class="sc">{</span>miewid<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>bg_removed<span class="sc">}</span><span class="ss">'</span>: miewid_transform,</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'</span><span class="sc">{</span>mega<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>rotated<span class="sc">}</span><span class="ss">'</span>: mega_transform_rotated,</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'</span><span class="sc">{</span>miewid<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>rotated<span class="sc">}</span><span class="ss">'</span>: miewid_transform_rotated,</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'</span><span class="sc">{</span>mega<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>bg_removed_rotated<span class="sc">}</span><span class="ss">'</span>: mega_transform_rotated,</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'</span><span class="sc">{</span>miewid<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>bg_removed_rotated<span class="sc">}</span><span class="ss">'</span>: miewid_transform_rotated,</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>save_path <span class="op">=</span> artifacts_path<span class="op">/</span><span class="st">'results_preview'</span></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>save_path.mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, row <span class="kw">in</span> tqdm(all_results_df[:<span class="dv">0</span>].iterrows(), total<span class="op">=</span><span class="bu">len</span>(all_results_df)):</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>    key <span class="op">=</span> <span class="ss">f'</span><span class="sc">{</span>row<span class="sc">.</span>model<span class="sc">.</span>iloc[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>row<span class="sc">.</span>debiasing<span class="sc">.</span>iloc[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">'</span></span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>    pred_transforms <span class="op">=</span> dict_of_pred_transforms[key]</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>    query_transforms <span class="op">=</span> mega_transform <span class="cf">if</span> row.model.iloc[<span class="dv">0</span>] <span class="op">==</span> mega <span class="cf">else</span> miewid_transform</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> row.model.iloc[<span class="dv">0</span>] <span class="op">==</span> mega:</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>        denorm_mean <span class="op">=</span> <span class="fl">0.5</span></span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>        denorm_std <span class="op">=</span> <span class="fl">0.5</span></span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>        denorm_mean <span class="op">=</span> [<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>] </span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>        denorm_std <span class="op">=</span> [<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>] </span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>    masked <span class="op">=</span> row.debiasing.iloc[<span class="dv">0</span>] <span class="op">==</span> bg_removed <span class="kw">or</span> row.debiasing.iloc[<span class="dv">0</span>] <span class="op">==</span> bg_removed_rotated</span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">10</span>))</span>
+<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>    plot_predictions(query_id<span class="op">=</span>row[<span class="st">'query'</span>, <span class="st">'identity'</span>], </span>
+<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a>                query_image_name<span class="op">=</span>row[<span class="st">'query'</span>, <span class="st">'image_name'</span>], </span>
+<span id="cb40-32"><a href="#cb40-32" aria-hidden="true" tabindex="-1"></a>                pred_scores<span class="op">=</span>row[<span class="st">'score'</span>],</span>
+<span id="cb40-33"><a href="#cb40-33" aria-hidden="true" tabindex="-1"></a>                pred_image_ids<span class="op">=</span>row[<span class="st">'predicted_identity'</span>], </span>
+<span id="cb40-34"><a href="#cb40-34" aria-hidden="true" tabindex="-1"></a>                pred_image_names<span class="op">=</span>row[<span class="st">'predicted_image_name'</span>], </span>
+<span id="cb40-35"><a href="#cb40-35" aria-hidden="true" tabindex="-1"></a>                master_df<span class="op">=</span>df,</span>
+<span id="cb40-36"><a href="#cb40-36" aria-hidden="true" tabindex="-1"></a>                data_path<span class="op">=</span>dataset_path,</span>
+<span id="cb40-37"><a href="#cb40-37" aria-hidden="true" tabindex="-1"></a>                query_transforms<span class="op">=</span>query_transforms,</span>
+<span id="cb40-38"><a href="#cb40-38" aria-hidden="true" tabindex="-1"></a>                pred_transforms<span class="op">=</span>pred_transforms,</span>
+<span id="cb40-39"><a href="#cb40-39" aria-hidden="true" tabindex="-1"></a>                denorm_mean<span class="op">=</span>denorm_mean,</span>
+<span id="cb40-40"><a href="#cb40-40" aria-hidden="true" tabindex="-1"></a>                denorm_std<span class="op">=</span>denorm_std,</span>
+<span id="cb40-41"><a href="#cb40-41" aria-hidden="true" tabindex="-1"></a>                masked<span class="op">=</span>masked,</span>
+<span id="cb40-42"><a href="#cb40-42" aria-hidden="true" tabindex="-1"></a>                model_name<span class="op">=</span>row.model.iloc[<span class="dv">0</span>])</span>
+<span id="cb40-43"><a href="#cb40-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-44"><a href="#cb40-44" aria-hidden="true" tabindex="-1"></a>    file_name <span class="op">=</span> <span class="ss">f'query_id_</span><span class="sc">{</span>row[<span class="st">"query"</span>, <span class="st">"identity"</span>]<span class="sc">}</span><span class="ss">_</span><span class="sc">{</span>row[<span class="st">"query"</span>, <span class="st">"image_name"</span>]<span class="sc">}</span><span class="ss">_</span><span class="sc">{</span>row<span class="sc">.</span>model<span class="sc">.</span>iloc[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">_</span><span class="sc">{</span>row<span class="sc">.</span>debiasing<span class="sc">.</span>iloc[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">_split_</span><span class="sc">{</span>row<span class="sc">.</span>split<span class="sc">.</span>iloc[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">.pdf'</span></span>
+<span id="cb40-45"><a href="#cb40-45" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_path<span class="op">/</span>file_name, <span class="bu">format</span><span class="op">=</span><span class="st">'pdf'</span>, dpi<span class="op">=</span><span class="dv">300</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>)</span>
+<span id="cb40-46"><a href="#cb40-46" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>  0%|          | 0/720 [00:00&lt;?, ?it/s]</code></pre>
+</div>
+</div>
+</section>
+<section id="the-24-evaluation-previews" class="level1">
+<h1>The 24 evaluation previews</h1>
+<p>We want to show the evaluations, so we can select one for each of the model (x2), split (x3), debiasing (x4), making it a total of 24</p>
+<div id="6eb784fc" class="cell" data-execution_count="36">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>all_results_df.groupby([<span class="st">'model'</span>, <span class="st">'split'</span>, <span class="st">'debiasing'</span>]).first()[[[<span class="st">'query'</span>, <span class="st">'identity'</span>], [<span class="st">'query'</span>, <span class="st">'image_name'</span>]]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/tmp/ipykernel_89844/3094507868.py:1: PerformanceWarning: dropping on a non-lexsorted multi-index without a level parameter may impact performance.
+  all_results_df.groupby(['model', 'split', 'debiasing']).first()[[['query', 'identity'], ['query', 'image_name']]]</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="36">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th colspan="2" data-quarto-table-cell-role="th" data-halign="left">query</th>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">identity</th>
+<th data-quarto-table-cell-role="th">image_name</th>
+</tr>
+<tr class="header">
+<th data-quarto-table-cell-role="th">model</th>
+<th data-quarto-table-cell-role="th">split</th>
+<th data-quarto-table-cell-role="th">debiasing</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td rowspan="12" data-quarto-table-cell-role="th" data-valign="top">MegaDescriptor</td>
+<td rowspan="4" data-quarto-table-cell-role="th" data-valign="top">Hard</td>
+<td data-quarto-table-cell-role="th">Background Removed</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed + Rotated</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Original</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Rotated</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+</tr>
+<tr class="odd">
+<td rowspan="4" data-quarto-table-cell-role="th" data-valign="top">Least Similar</td>
+<td data-quarto-table-cell-role="th">Background Removed</td>
+<td>37</td>
+<td>IMG_2472.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed + Rotated</td>
+<td>37</td>
+<td>IMG_2472.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Original</td>
+<td>37</td>
+<td>IMG_2472.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Rotated</td>
+<td>37</td>
+<td>IMG_2472.JPEG</td>
+</tr>
+<tr class="odd">
+<td rowspan="4" data-quarto-table-cell-role="th" data-valign="top">Random</td>
+<td data-quarto-table-cell-role="th">Background Removed</td>
+<td>1</td>
+<td>IMG_2532.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed + Rotated</td>
+<td>1</td>
+<td>IMG_2532.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Original</td>
+<td>1</td>
+<td>IMG_2532.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Rotated</td>
+<td>1</td>
+<td>IMG_2532.JPEG</td>
+</tr>
+<tr class="odd">
+<td rowspan="12" data-quarto-table-cell-role="th" data-valign="top">MiewID</td>
+<td rowspan="4" data-quarto-table-cell-role="th" data-valign="top">Hard</td>
+<td data-quarto-table-cell-role="th">Background Removed</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed + Rotated</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Original</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Rotated</td>
+<td>4</td>
+<td>IMG_2545.JPEG</td>
+</tr>
+<tr class="odd">
+<td rowspan="4" data-quarto-table-cell-role="th" data-valign="top">Least Similar</td>
+<td data-quarto-table-cell-role="th">Background Removed</td>
+<td>37</td>
+<td>IMG_2472.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed + Rotated</td>
+<td>37</td>
+<td>IMG_2472.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Original</td>
+<td>37</td>
+<td>IMG_2472.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Rotated</td>
+<td>37</td>
+<td>IMG_2472.JPEG</td>
+</tr>
+<tr class="odd">
+<td rowspan="4" data-quarto-table-cell-role="th" data-valign="top">Random</td>
+<td data-quarto-table-cell-role="th">Background Removed</td>
+<td>1</td>
+<td>IMG_2532.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Background Removed + Rotated</td>
+<td>1</td>
+<td>IMG_2532.JPEG</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">Original</td>
+<td>1</td>
+<td>IMG_2532.JPEG</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">Rotated</td>
+<td>1</td>
+<td>IMG_2532.JPEG</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/mshahoyi\.github\.io\/gcn-reid");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/mshahoyi/gcn-reid/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
