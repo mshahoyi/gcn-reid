@@ -169,7 +169,7 @@ n_images = 4
 
 image_counts = dino_features_df.groupby('identity').file_name.count()
 identities_with_n_images = image_counts[image_counts == n_images].index.tolist()
-intra_identity_similarities_path = artifacts_path / 'intra_identity_similarities'
+intra_identity_similarities_path = artifacts_path / 'intra_identity_similarities' / f'n_images_{n_images}'
 intra_identity_similarities_path.mkdir(parents=True, exist_ok=True)
 
 for identity in identities_with_n_images:
@@ -185,6 +185,25 @@ for identity in identities_with_n_images:
               .set_caption(f"Similarity matrix for identity {identity}"))
 
 # %%
+n_images = 5
+
+image_counts = dino_features_df.groupby('identity').file_name.count()
+identities_with_n_images = image_counts[image_counts == n_images].index.tolist()
+intra_identity_similarities_path = artifacts_path / 'intra_identity_similarities' / f'n_images_{n_images}'
+intra_identity_similarities_path.mkdir(parents=True, exist_ok=True)
+
+for identity in identities_with_n_images:
+    plot_identity_similarities(identity, dino_features_df, dinov2_similarities, dataset_path)
+    plt.savefig(intra_identity_similarities_path / f'identity_{identity}_similarities.png')
+    plt.close()
+    df = dinov2_similarities_df.loc[dinov2_similarities_df.index.str.startswith(f'{identity}_'), dinov2_similarities_df.columns.str.startswith(f'{identity}_')]
+    df.to_csv(intra_identity_similarities_path / f'identity_{identity}_similarities.csv')
+    
+    # Preview the similarity matrix for this identity
+    display.display(df.style.background_gradient(cmap='RdYlBu', vmin=-1, vmax=1)
+              .format("{:.3f}")
+              .set_caption(f"Similarity matrix for identity {identity}"))
+
 
 # %%
 
